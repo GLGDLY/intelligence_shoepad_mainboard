@@ -3,7 +3,6 @@
 #include "MLX90393_cmds.h"
 #include "esp_log.h"
 #include "freertos/projdefs.h"
-#include "globals.h"
 #include "os.h"
 #include "portmacro.h"
 #include "spi_gpio_helper.h"

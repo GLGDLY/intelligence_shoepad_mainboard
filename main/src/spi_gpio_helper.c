@@ -1,6 +1,5 @@
 #include "spi_gpio_helper.h"
 
-#include "globals.h"
 #include "hal/gpio_types.h"
 #include "soc/gpio_num.h"
 
