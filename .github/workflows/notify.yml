@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
+      - main
+    paths-ignore:
+      - ".github/**"
 
 jobs:
   notify:
