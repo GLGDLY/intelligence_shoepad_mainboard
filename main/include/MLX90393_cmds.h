@@ -1,17 +1,11 @@
 #ifndef _MLX90393_CMDS_H
 #define _MLX90393_CMDS_H
 
+#include "globals.h"
 #include "spi_app.h"
 
 #include <stdbool.h>
 
-/* Configs */
-#define MLX90393_CMDS_TABLE(X) \
-	X(SB, 0x1F, 1)             \
-	X(SW, 0x2F, 1)             \
-	X(SM, 0x3F, 1)             \
-	X(RM, 0x4F, 9)             \
-	X(RT, 0xF0, 1)
 
 /* Enums */
 #define X_EXPAND_MLX90393_CMDS_EMUM(NAME, ...) MLX90393_##NAME,

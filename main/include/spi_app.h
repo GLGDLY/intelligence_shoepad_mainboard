@@ -1,14 +1,11 @@
 #ifndef _SPI_APP_H
 #define _SPI_APP_H
 
+#include "globals.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
-/* Configs */
-#define SPI_PIN_MISO GPIO_NUM_13
-#define SPI_PIN_MOSI GPIO_NUM_14
-#define SPI_PIN_CLK	 GPIO_NUM_21
-#define SPI_HOST_ID	 SPI2_HOST
 
 /* Structs */
 typedef struct {

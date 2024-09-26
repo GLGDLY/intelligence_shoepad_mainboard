@@ -124,10 +124,10 @@ void spi_app_thread(void* par) {
 					 mlx90393_data[i].Y, mlx90393_data[i].Z);
 		}
 		ESP_LOGI(TAG, "--------------------------------------------");
-		delay(100);
+		delay(DEBUG_SPI_PRINT_DELAY_MS);
 #endif
 
-		// wait for 100ms for all devices to be ready, else timeout and directly request data
-		ulTaskNotifyTake(pdTRUE, ms_to_ticks(100));
+		// wait for ${SPI_GATE_TIMEOUT_MS} ms for all devices to be ready, else timeout and directly request data
+		ulTaskNotifyTake(pdTRUE, ms_to_ticks(SPI_GATE_TIMEOUT_MS));
 	}
 }
