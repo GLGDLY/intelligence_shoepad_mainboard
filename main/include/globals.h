@@ -13,7 +13,7 @@
 #define TAG "mainboard"
 
 #define DEBUG
-#define DEBUG_SPI_PRINT_DELAY_MS 100
+#define DEBUG_SPI_PRINT_DELAY_MS 1000
 
 // SPI
 #define SPI_GATE_TIMEOUT_MS 20
@@ -24,9 +24,9 @@
 #define SPI_HOST_ID	 SPI2_HOST
 
 #define SPI_CS_TABLE(X) \
-	X(A, GPIO_NUM_31)   \
-	X(B, GPIO_NUM_30)   \
-	X(C, GPIO_NUM_29)
+	X(A, GPIO_NUM_38)   \
+	X(B, GPIO_NUM_37)   \
+	X(C, GPIO_NUM_36)
 
 #define SPI_DRDY_TABLE(X) \
 	X(GPIO_NUM_18)        \

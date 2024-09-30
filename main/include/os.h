@@ -32,7 +32,8 @@
 		.handle = NULL,                                      \
 	}
 
-#define RtosDefineTask(task_to_create, task_func) RtosDefineTaskSized(task_to_create, task_func, 256)
+#define RtosDefineTask(task_to_create, task_func) \
+	RtosDefineTaskSized(task_to_create, task_func, configMINIMAL_STACK_SIZE)
 
 #define RtosStaticTaskCreate(task, prio, par)                                                                        \
 	do {                                                                                                             \

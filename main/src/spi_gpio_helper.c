@@ -1,28 +1,31 @@
 #include "spi_gpio_helper.h"
 
+#include "esp_log.h"
+#include "globals.h"
 #include "hal/gpio_types.h"
 #include "soc/gpio_num.h"
 
 
 /* Helper macros */
 #define X_EXPAND_CS_DEC_CONSTRUCT(NAME, PIN) [CS_DEC_##NAME] = PIN,
-#define X_EXPAND_CS_DEC_PIN_MASK(NAME, PIN)	 (1 << PIN) |
+#define X_EXPAND_CS_DEC_PIN_MASK(NAME, PIN)	 (1ULL << PIN) |
 
 #define X_EXPAND_DRDY_CONSTRUCT(PIN) PIN,
-#define X_EXPAND_DRDY_PIN_MASK(PIN)	 (1 << PIN) |
+#define X_EXPAND_DRDY_PIN_MASK(PIN)	 (1ULL << PIN) |
 
 /* Constants */
 const gpio_num_t SPI_CS_PINS[] = {SPI_CS_TABLE(X_EXPAND_CS_DEC_CONSTRUCT)};
 const gpio_num_t SPI_DRDY_PINS[NUM_OF_SPI_DEV] = {SPI_DRDY_TABLE(X_EXPAND_DRDY_CONSTRUCT)};
 
 void spi_cs_init(void) {
+	ESP_LOGI(TAG, "SPI CS init");
 	esp_err_t ret;
 
 	gpio_config_t conf = {
-		.pin_bit_mask = SPI_CS_TABLE(X_EXPAND_CS_DEC_PIN_MASK) 0,
+		.pin_bit_mask = (SPI_CS_TABLE(X_EXPAND_CS_DEC_PIN_MASK) 0),
 		.mode = GPIO_MODE_OUTPUT,
-		.pull_up_en = 0,
-		.pull_down_en = 0,
+		.pull_up_en = GPIO_PULLUP_DISABLE,
+		.pull_down_en = GPIO_PULLDOWN_DISABLE,
 		.intr_type = GPIO_INTR_DISABLE,
 	};
 	ret = gpio_config(&conf);
@@ -35,7 +38,7 @@ void spi_cs_init(void) {
 }
 
 void spi_cs(uint8_t dev_id) {
-	if (dev_id > NUM_OF_SPI_DEV || dev_id <= 0) {
+	if (dev_id >= NUM_OF_SPI_DEV || dev_id < 0) {
 		ESP_LOGE(TAG, "Invalid device ID: %d", dev_id);
 		return;
 	}
@@ -52,6 +55,7 @@ void spi_cs(uint8_t dev_id) {
 __attribute__((weak)) void spi_drdy_intr_handler(void* arg){};
 
 void spi_drdy_init(void) {
+	ESP_LOGI(TAG, "SPI DRDY init");
 	esp_err_t ret;
 
 	gpio_config_t conf = {
@@ -63,9 +67,9 @@ void spi_drdy_init(void) {
 	ret = gpio_config(&conf);
 	ESP_ERROR_CHECK(ret);
 
+	ret = gpio_install_isr_service(0);
+	ESP_ERROR_CHECK(ret);
 	FOR_EACH_SPI_DEV(i) {
-		ret = gpio_install_isr_service(0);
-		ESP_ERROR_CHECK(ret);
 		ret = gpio_isr_handler_add(SPI_DRDY_PINS[i], spi_drdy_intr_handler, (void*)(uint64_t)i);
 		ESP_ERROR_CHECK(ret);
 	}

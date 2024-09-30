@@ -9,12 +9,78 @@ menu "Configuration"
     config BROKER_URL_FROM_STDIN
         bool
         default y if BROKER_URL = "FROM_STDIN"
-
+        
     config FREERTOS_CHECK_STACKOVERFLOW_PTRVAL
         bool
         default y
         help
             Check for stack overflow by writing a known value to the top of the stack
             of each task. This is the default behavior.
+
+    config CONFIG_USB_SERIAL_JTAG_CONSOLE 
+        bool "Enable USB Serial JTAG Console"
+        default y
+        help
+            Enable USB Serial JTAG Console
+    
+    config CONFIG_USB_SERIAL_CONSOLE
+        bool "Enable USB Serial Console"
+        default y
+        help
+            Enable USB Serial Console
+    
+    config CONFIG_USB_SERIAL_CONSOLE_BAUDRATE
+        int "USB Serial Console Baudrate"
+        default 115200
+        help
+            USB Serial Console Baudrate
+    
+    config CONFIG_USB_SERIAL_CONSOLE_RX_BUFFER_SIZE
+        int "USB Serial Console RX Buffer Size"
+        default 256
+        help
+            USB Serial Console RX Buffer Size
+    
+    config CONFIG_USB_SERIAL_CONSOLE_TX_BUFFER_SIZE
+        int "USB Serial Console TX Buffer Size"
+        default 256
+        help
+            USB Serial Console TX Buffer Size
+
+    config CONFIG_USB_SERIAL_CONSOLE_RX_BUFFER_COUNT
+        int "USB Serial Console RX Buffer Count"
+        default 4
+        help
+            USB Serial Console RX Buffer Count
+    
+    config CONFIG_USB_SERIAL_CONSOLE_TX_BUFFER_COUNT   
+        int "USB Serial Console TX Buffer Count"
+        default 4
+        help
+            USB Serial Console TX Buffer Count
+
+    config CONFIG_USB_SERIAL_CONSOLE_RX_BUFFER_TIMEOUT
+        int "USB Serial Console RX Buffer Timeout"
+        default 100
+        help
+            USB Serial Console RX Buffer Timeout
+    
+    config CONFIG_USB_SERIAL_CONSOLE_TX_BUFFER_TIMEOUT
+        int "USB Serial Console TX Buffer Timeout"
+        default 100
+        help
+            USB Serial Console TX Buffer Timeout
+    
+    config CONFIG_USB_SERIAL_CONSOLE_RX_BUFFER_TIMEOUT_TICKS
+        int "USB Serial Console RX Buffer Timeout Ticks"
+        default 10
+        help
+            USB Serial Console RX Buffer Timeout Ticks
+    
+    config CONFIG_USB_SERIAL_CONSOLE_TX_BUFFER_TIMEOUT_TICKS
+        int "USB Serial Console TX Buffer Timeout Ticks"
+        default 10
+        help
+            USB Serial Console TX Buffer Timeout Ticks
     
 endmenu

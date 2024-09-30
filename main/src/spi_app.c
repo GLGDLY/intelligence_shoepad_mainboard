@@ -26,7 +26,7 @@ const uint32_t bitfield_all_spi_dev_ready = (1 << NUM_OF_SPI_DEV) - 1;
 void spi_app_init(void) {
 	spi_mux = xSemaphoreCreateMutex();
 
-	ESP_LOGI(TAG, "Initializing bus SPI%d...", SPI2_HOST + 1);
+	ESP_LOGI(TAG, "Initializing bus SPI%d...", SPI_HOST_ID + 1);
 
 	spi_bus_config_t buscfg = {
 		.miso_io_num = SPI_PIN_MISO, // MISO
@@ -53,6 +53,7 @@ void spi_app_init(void) {
 
 	spi_cs_init();
 	spi_drdy_init();
+	ESP_LOGI(TAG, "SPI init success");
 }
 
 void spi_tx_request(spi_cmd_t* cmd) {
@@ -64,7 +65,7 @@ void spi_tx_request(spi_cmd_t* cmd) {
 	xSemaphoreTake(spi_mux, portMAX_DELAY);
 
 	spi_transaction_t tx = {
-		.length = cmd->len,
+		.length = cmd->len * 8, // byte to bit
 		.tx_buffer = cmd->tx_data,
 		.rx_buffer = cmd->rx_data,
 	};
@@ -81,7 +82,7 @@ void spi_drdy_intr_handler(void* arg) {
 
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	if (dev_ready == bitfield_all_spi_dev_ready) {
-		RtosStaticTask_t spi_app_task;
+		extern RtosStaticTask_t spi_app_task;
 		xHigherPriorityTaskWoken = pdTRUE;
 		vTaskNotifyGiveFromISR(spi_app_task.handle, &xHigherPriorityTaskWoken);
 	}
@@ -96,6 +97,7 @@ void spi_app_thread(void* par) {
 		while (1) {
 			mlx90393_status_t status = mlx90393_SB_request(i);
 			if (mlx90393_RM_data_is_valid(status)) {
+				ESP_LOGI(TAG, "Init SPI dev: %d success", i);
 				break;
 			} else {
 				ESP_LOGE(TAG, "Init SPI dev: %d failed", i);
