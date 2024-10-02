@@ -7,14 +7,14 @@
 
 
 /* Helper macros */
-#define X_EXPAND_CS_DEC_CONSTRUCT(NAME, PIN) [CS_DEC_##NAME] = PIN,
-#define X_EXPAND_CS_DEC_PIN_MASK(NAME, PIN)	 (1ULL << PIN) |
+#define X_EXPAND_CS_CONSTRUCT(NAME, PIN) [CS_DEC_##NAME] = PIN,
+#define X_EXPAND_CS_PIN_MASK(NAME, PIN)	 (1ULL << PIN) |
 
 #define X_EXPAND_DRDY_CONSTRUCT(PIN) PIN,
 #define X_EXPAND_DRDY_PIN_MASK(PIN)	 (1ULL << PIN) |
 
 /* Constants */
-const gpio_num_t SPI_CS_PINS[] = {SPI_CS_TABLE(X_EXPAND_CS_DEC_CONSTRUCT)};
+const gpio_num_t SPI_CS_PINS[] = {SPI_CS_TABLE(X_EXPAND_CS_CONSTRUCT)};
 const gpio_num_t SPI_DRDY_PINS[NUM_OF_SPI_DEV] = {SPI_DRDY_TABLE(X_EXPAND_DRDY_CONSTRUCT)};
 
 void spi_cs_init(void) {
@@ -22,7 +22,7 @@ void spi_cs_init(void) {
 	esp_err_t ret;
 
 	gpio_config_t conf = {
-		.pin_bit_mask = (SPI_CS_TABLE(X_EXPAND_CS_DEC_PIN_MASK) 0),
+		.pin_bit_mask = (SPI_CS_TABLE(X_EXPAND_CS_PIN_MASK) 0),
 		.mode = GPIO_MODE_OUTPUT,
 		.pull_up_en = GPIO_PULLUP_DISABLE,
 		.pull_down_en = GPIO_PULLDOWN_DISABLE,
@@ -31,8 +31,8 @@ void spi_cs_init(void) {
 	ret = gpio_config(&conf);
 	ESP_ERROR_CHECK(ret);
 
-	for (int i = 0; i < NUM_OF_CS_DEC; i++) {
-		ret = gpio_set_level(SPI_CS_PINS[i], GPIO_LOW);
+	for (int i = 0; i < NUM_OF_CS_PIN; i++) {
+		ret = gpio_set_level(SPI_CS_PINS[i], GPIO_HIGH);
 		ESP_ERROR_CHECK(ret);
 	}
 }
@@ -43,11 +43,12 @@ void spi_cs(uint8_t dev_id) {
 		return;
 	}
 
-	for (int i = 0; i < NUM_OF_CS_DEC; i++) {
-		if (dev_id & (1 << i)) {
-			gpio_set_level(SPI_CS_PINS[i], GPIO_HIGH);
-		} else {
+	for (int i = 0; i < NUM_OF_CS_PIN; i++) {
+		// if (dev_id & (1 << i)) {
+		if (dev_id == i) {
 			gpio_set_level(SPI_CS_PINS[i], GPIO_LOW);
+		} else {
+			gpio_set_level(SPI_CS_PINS[i], GPIO_HIGH);
 		}
 	}
 }
