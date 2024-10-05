@@ -53,6 +53,7 @@ void spi_app_init(void) {
 
 	spi_cs_init();
 	spi_drdy_init();
+	spi_sync_init();
 	ESP_LOGI(TAG, "SPI init success");
 }
 
@@ -95,14 +96,36 @@ void spi_app_thread(void* par) {
 
 	FOR_EACH_SPI_DEV(i) {
 		while (1) {
-			mlx90393_status_t status = mlx90393_SB_request(i);
+			mlx90393_status_t status;
+			status = mlx90393_SM_request(i);
 			if (mlx90393_RM_data_is_valid(status)) {
 				ESP_LOGI(TAG, "Init SPI dev: %d success", i);
-				break;
 			} else {
 				ESP_LOGE(TAG, "Init SPI dev: %d failed", i);
+				goto retry;
 			}
-			delay(100);
+
+			mlx90393_reg_data_t reg_data = mlx90393_RR_request(i, 0x01);
+			if (mlx90393_RM_data_is_valid(reg_data.status)) {
+				ESP_LOGI(TAG, "Reg: 0x01, Data: 0x%02x%02x", reg_data.data[0], reg_data.data[1]);
+			} else {
+				ESP_LOGE(TAG, "Failed to read reg: 0x01");
+				goto retry;
+			}
+
+			reg_data.data[0] &= ~(1 << 7); // clear bit 7 (TRIG_INT)
+
+			status = mlx90393_WR_request(i, 0x01, (uint8_t[]){0x00, 0x00});
+			if (mlx90393_RM_data_is_valid(status)) {
+				ESP_LOGI(TAG, "Reg: 0x01, Data: 0x%02x%02x", reg_data.data[0], reg_data.data[1]);
+			} else {
+				ESP_LOGE(TAG, "Failed to write reg: 0x01");
+				goto retry;
+			}
+			break;
+
+		retry:
+			delay(50);
 		}
 	}
 

@@ -50,13 +50,17 @@
 	X(GPIO_NUM_5)         \
 	X(GPIO_NUM_4)
 
+#define SPI_SYNC_PIN GPIO_NUM_39
+
 // SPI MLX90393 device
 #define MLX90393_CMDS_TABLE(X) \
-	X(SB, 0x1F, 1)             \
-	X(SW, 0x2F, 1)             \
-	X(SM, 0x3F, 1)             \
-	X(RM, 0x4F, 9)             \
-	X(RT, 0xF0, 1)
+	X(SB, 0x1F, 1, 1)          \
+	X(SW, 0x2F, 1, 1)          \
+	X(SM, 0x3F, 1, 1)          \
+	X(RM, 0x4F, 1, 9)          \
+	X(RT, 0xF0, 1, 1)          \
+	X(RR, 0x50, 2, 3)          \
+	X(WR, 0x60, 4, 1)
 
 /* Enums */
 typedef enum {

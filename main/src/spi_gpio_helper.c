@@ -1,5 +1,6 @@
 #include "spi_gpio_helper.h"
 
+#include "driver/mcpwm.h"
 #include "esp_log.h"
 #include "globals.h"
 #include "hal/gpio_types.h"
@@ -80,4 +81,24 @@ uint32_t spi_drdy_get(void) {
 	uint32_t drdy = 0;
 	FOR_EACH_SPI_DEV(i) { drdy |= gpio_get_level(SPI_DRDY_PINS[i]) << i; }
 	return drdy;
+}
+
+void spi_sync_init(void) {
+	ESP_LOGI(TAG, "SPI SYNC init");
+	esp_err_t ret;
+
+	ret = mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, SPI_SYNC_PIN);
+	ESP_ERROR_CHECK(ret);
+
+	mcpwm_config_t pwm_config = {
+		.frequency = 10000, // 100us period
+		.cmpr_a = 50,		// 50% duty cycle
+		.counter_mode = MCPWM_UP_COUNTER,
+		.duty_mode = MCPWM_DUTY_MODE_0,
+	};
+	ret = mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
+	ESP_ERROR_CHECK(ret);
+
+	ret = mcpwm_start(MCPWM_UNIT_0, MCPWM_TIMER_0);
+	ESP_ERROR_CHECK(ret);
 }
