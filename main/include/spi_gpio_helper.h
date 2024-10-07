@@ -25,6 +25,7 @@ typedef enum {
 /* Function prototypes */
 void spi_cs_init(void);
 void spi_cs(uint8_t dev_id);
+void spi_cs_clear();
 
 void spi_drdy_init(void);
 uint32_t spi_drdy_get(void);

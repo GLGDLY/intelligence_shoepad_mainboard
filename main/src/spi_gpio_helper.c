@@ -54,6 +54,12 @@ void spi_cs(uint8_t dev_id) {
 	}
 }
 
+void spi_cs_clear(void) {
+	for (int i = 0; i < NUM_OF_CS_PIN; i++) {
+		gpio_set_level(SPI_CS_PINS[i], GPIO_HIGH);
+	}
+}
+
 __attribute__((weak)) void spi_drdy_intr_handler(void* arg){};
 
 void spi_drdy_init(void) {
@@ -69,7 +75,7 @@ void spi_drdy_init(void) {
 	ret = gpio_config(&conf);
 	ESP_ERROR_CHECK(ret);
 
-	ret = gpio_install_isr_service(0);
+	ret = gpio_install_isr_service(ESP_INTR_FLAG_SHARED | ESP_INTR_FLAG_LOWMED);
 	ESP_ERROR_CHECK(ret);
 	FOR_EACH_SPI_DEV(i) {
 		ret = gpio_isr_handler_add(SPI_DRDY_PINS[i], spi_drdy_intr_handler, (void*)(uint64_t)i);
