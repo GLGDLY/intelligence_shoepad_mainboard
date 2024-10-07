@@ -107,6 +107,10 @@ void spi_app_thread(void* par) {
 	}
 
 	while (1) {
+#ifdef DEBUG
+		ESP_LOGI(TAG, "dev_ready: %x", (unsigned int)dev_ready);
+#endif
+
 		uint32_t drdy = spi_drdy_get();
 		if (drdy) {
 			FOR_EACH_SPI_DEV(i) {
@@ -120,6 +124,7 @@ void spi_app_thread(void* par) {
 		}
 
 #ifdef DEBUG
+		ESP_LOGI(TAG, "drdy: %x", (unsigned int)drdy);
 		FOR_EACH_SPI_DEV(i) {
 			ESP_LOGI(TAG, "Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
 					 mlx90393_data[i].Y, mlx90393_data[i].Z);
