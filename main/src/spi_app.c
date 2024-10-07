@@ -112,7 +112,7 @@ void spi_app_thread(void* par) {
 #endif
 
 		uint32_t drdy = spi_drdy_get();
-		if (drdy) {
+		if (drdy == bitfield_all_spi_dev_ready) {
 			FOR_EACH_SPI_DEV(i) {
 				if (drdy & (1 << i)) {
 					mlx90393_data[i] = mlx90393_RM_request(i);
@@ -135,6 +135,6 @@ void spi_app_thread(void* par) {
 #endif
 
 		// wait for ${SPI_GATE_TIMEOUT_MS} ms for all devices to be ready, else timeout and directly request data
-		ulTaskNotifyTake(pdTRUE, ms_to_ticks(SPI_GATE_TIMEOUT_MS));
+		// ulTaskNotifyTake(pdTRUE, ms_to_ticks(SPI_GATE_TIMEOUT_MS));
 	}
 }
