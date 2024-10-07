@@ -100,7 +100,7 @@ void spi_app_thread(void* par) {
 				ESP_LOGI(TAG, "Init SPI dev: %d success", i);
 				break;
 			} else {
-				ESP_LOGE(TAG, "Init SPI dev: %d failed", i);
+				ESP_LOGE(TAG, "Init SPI dev: %d failed: %x", i, status.raw);
 			}
 			delay(100);
 		}
