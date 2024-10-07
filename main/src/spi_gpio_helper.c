@@ -68,7 +68,7 @@ void spi_drdy_init(void) {
 	ret = gpio_config(&conf);
 	ESP_ERROR_CHECK(ret);
 
-	ret = gpio_install_isr_service(ESP_INTR_FLAG_NMI | ESP_INTR_FLAG_IRAM);
+	ret = gpio_install_isr_service(ESP_INTR_FLAG_SHARED | ESP_INTR_FLAG_LOWMED);
 	ESP_ERROR_CHECK(ret);
 	FOR_EACH_SPI_DEV(i) {
 		ret = gpio_isr_handler_add(SPI_DRDY_PINS[i], spi_drdy_intr_handler, (void*)(uint64_t)i);
