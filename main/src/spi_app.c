@@ -122,6 +122,7 @@ void spi_app_thread(void* par) {
 				}
 			}
 		}
+		spi_cs_clear();
 
 #ifdef DEBUG
 		ESP_LOGI(TAG, "drdy: %x", (unsigned int)drdy);

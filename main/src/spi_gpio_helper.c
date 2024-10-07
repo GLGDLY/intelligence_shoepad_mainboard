@@ -53,6 +53,12 @@ void spi_cs(uint8_t dev_id) {
 	}
 }
 
+void spi_cs_clear(void) {
+	for (int i = 0; i < NUM_OF_CS_PIN; i++) {
+		gpio_set_level(SPI_CS_PINS[i], GPIO_HIGH);
+	}
+}
+
 __attribute__((weak)) void spi_drdy_intr_handler(void* arg){};
 
 void spi_drdy_init(void) {
