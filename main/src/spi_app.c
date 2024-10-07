@@ -99,7 +99,7 @@ void spi_app_thread(void* par) {
 			mlx90393_status_t status;
 			status = mlx90393_SM_request(i);
 			if (mlx90393_RM_data_is_valid(status)) {
-				ESP_LOGI(TAG, "Init SPI dev: %d success", i);
+				ESP_LOGI(TAG, "Init SPI dev: %d success: %x", i, status.raw);
 			} else {
 				ESP_LOGE(TAG, "Init SPI dev: %d failed: %x", i, status.raw);
 				goto retry;
