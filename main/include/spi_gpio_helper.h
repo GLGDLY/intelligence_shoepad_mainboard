@@ -30,5 +30,6 @@ void spi_cs_clear();
 void spi_drdy_init(void);
 uint32_t spi_drdy_get(void);
 void spi_sync_init(void);
+void spi_sync_start(void);
 
 #endif // _SPI_GPIO_HELPER_H

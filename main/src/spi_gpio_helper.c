@@ -91,8 +91,11 @@ uint32_t spi_drdy_get(void) {
 	return drdy;
 }
 
+/* SPI Sync */
+
 __attribute__((weak)) void spi_sync_falling_edge_handler(void* arg) {}
 
+gptimer_handle_t timer = NULL;
 uint64_t timer_cnt = 0;
 
 bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t* event, void* arg) {
@@ -133,7 +136,6 @@ void spi_sync_init(void) {
 	ret = gpio_set_level(SPI_SYNC_PIN, GPIO_LOW);
 	ESP_ERROR_CHECK(ret);
 
-	gptimer_handle_t timer = NULL;
 	gptimer_config_t timer_config = {
 		.clk_src = GPTIMER_CLK_SRC_DEFAULT,
 		.direction = GPTIMER_COUNT_UP,
@@ -158,8 +160,11 @@ void spi_sync_init(void) {
 	ret = gptimer_enable(timer);
 	ESP_ERROR_CHECK(ret);
 
+	ESP_LOGI(TAG, "SPI SYNC init success");
+}
+
+void spi_sync_start(void) {
+	esp_err_t ret;
 	ret = gptimer_start(timer);
 	ESP_ERROR_CHECK(ret);
-
-	ESP_LOGI(TAG, "SPI SYNC init success");
 }

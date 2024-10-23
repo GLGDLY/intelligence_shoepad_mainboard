@@ -136,6 +136,8 @@ void spi_app_thread(void* par) {
 		}
 	}
 
+	spi_sync_start();
+
 #ifdef DEBUG
 	uint32_t last_ticks = xTaskGetTickCount();
 #endif
