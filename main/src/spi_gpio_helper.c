@@ -101,16 +101,16 @@ uint64_t timer_cnt = 0;
 bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t* event, void* arg) {
 	timer_cnt++;
 	static bool gpio_state = false;
-	static uint8_t low_cnt = 0;
+	static uint8_t low_cnt = 1;
 	if (gpio_state == 0 && low_cnt >= 10) {
 		gpio_state = !gpio_state;
 	} else if (gpio_state == 1) {
 		gpio_state = !gpio_state;
 		low_cnt = 0;
 	}
-	gpio_set_level(SPI_SYNC_PIN, gpio_state);
+	gpio_set_level(SPI_SYNC_PIN, !gpio_state);
 
-	if (!gpio_state) {
+	if (gpio_state == 0) {
 		if (low_cnt++ == 0) { // falling edge
 			extern RtosStaticTask_t spi_app_task;
 			vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
@@ -124,6 +124,7 @@ void spi_sync_init(void) {
 	ESP_LOGI(TAG, "SPI SYNC init");
 	esp_err_t ret;
 
+	// spi sync is inverted
 	gpio_config_t conf = {
 		.pin_bit_mask = (1ULL << SPI_SYNC_PIN),
 		.mode = GPIO_MODE_OUTPUT,
@@ -133,7 +134,7 @@ void spi_sync_init(void) {
 	};
 	ret = gpio_config(&conf);
 	ESP_ERROR_CHECK(ret);
-	ret = gpio_set_level(SPI_SYNC_PIN, GPIO_LOW);
+	ret = gpio_set_level(SPI_SYNC_PIN, GPIO_HIGH);
 	ESP_ERROR_CHECK(ret);
 
 	gptimer_config_t timer_config = {
