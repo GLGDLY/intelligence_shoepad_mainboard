@@ -5,6 +5,8 @@
 #include "hal/gpio_types.h"
 #include "soc/gpio_num.h"
 
+#include <stdio.h>
+
 
 /* Helper macros */
 #define X_EXPAND_CS_CONSTRUCT(NAME, PIN) [CS_DEC_##NAME] = PIN,
@@ -88,36 +90,49 @@ uint32_t spi_drdy_get(void) {
 	return drdy;
 }
 
-__attribute__((weak)) bool spi_sync_falling_edge_handler(mcpwm_unit_t mcpwm, mcpwm_capture_channel_id_t cap_channel,
-														 const cap_event_data_t* edata, void* user_data) {
-	return false;
+__attribute__((weak)) void spi_sync_falling_edge_handler(void* arg) {}
+
+void timer_isr_handler(void* arg) {
+	static bool gpio_state = false;
+	gpio_state = !gpio_state;
+	gpio_set_level(SPI_SYNC_PIN, gpio_state);
 }
 
 void spi_sync_init(void) {
 	ESP_LOGI(TAG, "SPI SYNC init");
 	esp_err_t ret;
 
-	ret = mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, SPI_SYNC_PIN);
-	ESP_ERROR_CHECK(ret);
-
-	mcpwm_config_t pwm_config = {
-		.frequency = MS_TO_FREQ(SPI_GATE_TIMEOUT_MS),
-		.cmpr_a = 80,
-		.counter_mode = MCPWM_UP_COUNTER,
-		.duty_mode = MCPWM_DUTY_MODE_0,
+	gpio_config_t conf = {
+		.pin_bit_mask = (1ULL << SPI_SYNC_PIN),
+		.mode = GPIO_MODE_INPUT,
+		.pull_down_en = GPIO_PULLDOWN_ENABLE,
+		.intr_type = GPIO_INTR_NEGEDGE,
 	};
-	ret = mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
+	ret = gpio_config(&conf);
 	ESP_ERROR_CHECK(ret);
 
-	mcpwm_capture_config_t capture_config = {
-		.cap_edge = MCPWM_NEG_EDGE,
-		.cap_prescale = 1,
-		.capture_cb = spi_sync_falling_edge_handler,
-		.user_data = NULL,
+	ret = gpio_install_isr_service(ESP_INTR_FLAG_SHARED | ESP_INTR_FLAG_LOWMED);
+	ESP_ERROR_CHECK(ret);
+	ret = gpio_isr_handler_add(SPI_SYNC_PIN, spi_sync_falling_edge_handler, NULL);
+	ESP_ERROR_CHECK(ret);
+
+	timer_config_t timer_conf = {
+		.divider = MS_TO_DIVIDER(1),
+		.counter_dir = TIMER_COUNT_UP,
+		.counter_en = TIMER_START,
+		.alarm_en = TIMER_ALARM_DIS,
+		.intr_type = TIMER_INTR_LEVEL,
+		.auto_reload = TIMER_AUTORELOAD_EN,
 	};
-	ret = mcpwm_capture_enable_channel(MCPWM_UNIT_0, MCPWM_SELECT_CAP0, &capture_config);
+	ret = timer_init(TIMER_GROUP_0, TIMER_0, &timer_conf);
 	ESP_ERROR_CHECK(ret);
 
-	ret = mcpwm_start(MCPWM_UNIT_0, MCPWM_TIMER_0);
+	ret = timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, 1);
+	ESP_ERROR_CHECK(ret);
+	ret = timer_enable_intr(TIMER_GROUP_0, TIMER_0);
+	ESP_ERROR_CHECK(ret);
+	ret = timer_isr_register(TIMER_GROUP_0, TIMER_0, timer_isr_handler, NULL, ESP_INTR_FLAG_IRAM, NULL);
+	ESP_ERROR_CHECK(ret);
+	ret = timer_start(TIMER_GROUP_0, TIMER_0);
 	ESP_ERROR_CHECK(ret);
 }

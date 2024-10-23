@@ -91,11 +91,9 @@ void spi_drdy_intr_handler(void* arg) {
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-bool spi_sync_falling_edge_handler(mcpwm_unit_t mcpwm, mcpwm_capture_channel_id_t cap_channel,
-								   const cap_event_data_t* edata, void* user_data) {
+void spi_sync_falling_edge_handler(void* arg) {
 	// ESP_LOGI(TAG, "Sync signal detected on timer: %d", mcpwm);
 	vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
-	return true;
 }
 
 
