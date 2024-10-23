@@ -92,10 +92,11 @@ uint32_t spi_drdy_get(void) {
 
 __attribute__((weak)) void spi_sync_falling_edge_handler(void* arg) {}
 
-void timer_isr_handler(void* arg) {
+bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t* event, void* arg) {
 	static bool gpio_state = false;
 	gpio_state = !gpio_state;
 	gpio_set_level(SPI_SYNC_PIN, gpio_state);
+	return false;
 }
 
 void spi_sync_init(void) {
@@ -116,23 +117,35 @@ void spi_sync_init(void) {
 	ret = gpio_isr_handler_add(SPI_SYNC_PIN, spi_sync_falling_edge_handler, NULL);
 	ESP_ERROR_CHECK(ret);
 
-	timer_config_t timer_conf = {
-		.divider = MS_TO_DIVIDER(1),
-		.counter_dir = TIMER_COUNT_UP,
-		.counter_en = TIMER_START,
-		.alarm_en = TIMER_ALARM_DIS,
-		.intr_type = TIMER_INTR_LEVEL,
-		.auto_reload = TIMER_AUTORELOAD_EN,
+	gptimer_handle_t timer;
+	gptimer_config_t timer_config = {
+		.clk_src = GPTIMER_CLK_SRC_DEFAULT,
+		.direction = GPTIMER_COUNT_UP,
+		.resolution_hz = MS_TO_FREQ(SPI_GATE_TIMEOUT_MS),
 	};
-	ret = timer_init(TIMER_GROUP_0, TIMER_0, &timer_conf);
+	ret = gptimer_new_timer(&timer_config, &timer);
 	ESP_ERROR_CHECK(ret);
 
-	ret = timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, 1);
+	gptimer_event_callbacks_t cbs = {
+		.on_alarm = timer_isr_handler,
+	};
+	ret = gptimer_register_event_callbacks(timer, &cbs, NULL);
 	ESP_ERROR_CHECK(ret);
-	ret = timer_enable_intr(TIMER_GROUP_0, TIMER_0);
+
+	gptimer_alarm_config_t alarm_config = {
+		.alarm_count = 1,
+		.flags.auto_reload_on_alarm = true,
+	};
+	ret = gptimer_set_alarm_action(timer, &alarm_config);
 	ESP_ERROR_CHECK(ret);
-	ret = timer_isr_register(TIMER_GROUP_0, TIMER_0, timer_isr_handler, NULL, ESP_INTR_FLAG_IRAM, NULL);
+	ret = gptimer_enable(timer);
 	ESP_ERROR_CHECK(ret);
-	ret = timer_start(TIMER_GROUP_0, TIMER_0);
+
+	ret = gptimer_start(timer);
 	ESP_ERROR_CHECK(ret);
+
+	ret = gpio_set_level(SPI_SYNC_PIN, GPIO_LOW);
+	ESP_ERROR_CHECK(ret);
+
+	ESP_LOGI(TAG, "SPI SYNC init success");
 }

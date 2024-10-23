@@ -5,7 +5,6 @@
 
 #define X_EXPAND_CNT(...) +1
 
-#define MS_TO_FREQ(ms)	  (1000 / ms)
-#define MS_TO_DIVIDER(ms) (APB_CLK_FREQ / MS_TO_FREQ(ms))
+#define MS_TO_FREQ(ms) (1000 / ms)
 
 #endif // _MACRO_UTILS_H

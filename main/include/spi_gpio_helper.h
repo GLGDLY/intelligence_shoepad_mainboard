@@ -5,7 +5,7 @@
 #include "macro_utils.h"
 
 #include <driver/gpio.h>
-#include <driver/timer.h>
+#include <driver/gptimer.h>
 
 
 /* Enums */
