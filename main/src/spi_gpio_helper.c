@@ -115,9 +115,10 @@ void spi_sync_init(void) {
 
 	gpio_config_t conf = {
 		.pin_bit_mask = (1ULL << SPI_SYNC_PIN),
-		.mode = GPIO_MODE_INPUT,
-		.pull_down_en = GPIO_PULLDOWN_ENABLE,
-		.intr_type = GPIO_INTR_NEGEDGE,
+		.mode = GPIO_MODE_OUTPUT,
+		.pull_up_en = GPIO_PULLUP_DISABLE,
+		.pull_down_en = GPIO_PULLDOWN_DISABLE,
+		.intr_type = GPIO_INTR_DISABLE,
 	};
 	ret = gpio_config(&conf);
 	ESP_ERROR_CHECK(ret);
