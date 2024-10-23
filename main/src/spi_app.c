@@ -6,10 +6,10 @@
 #include "globals.h"
 #include "os.h"
 #include "portmacro.h"
+#include "soc/soc.h"
 #include "spi_gpio_helper.h"
 
 #include <driver/spi_master.h>
-#include <esp32/rom/ets_sys.h>
 #include <sdkconfig.h>
 #include <stdint.h>
 
@@ -60,6 +60,23 @@ void spi_app_init(void) {
 	ESP_LOGI(TAG, "SPI init success");
 }
 
+
+static __inline void delay_clock(int ts) {
+	uint32_t start, curr;
+
+	__asm__ __volatile__("rsr %0, ccount" : "=r"(start));
+	do {
+		__asm__ __volatile__("rsr %0, ccount" : "=r"(curr));
+
+	} while (curr - start <= ts);
+}
+
+void udelay(int us) {
+	while (us--) {
+		delay_clock(CPU_CLK_FREQ_MHZ_BTLD);
+	}
+}
+
 void spi_tx_request(spi_cmd_t* cmd) {
 	if (cmd->len <= 0)
 		return;
@@ -71,7 +88,7 @@ void spi_tx_request(spi_cmd_t* cmd) {
 	spi_cs(cmd->dev_id);
 
 	// wait 1us
-	ets_delay_us(1);
+	udelay(1);
 
 	spi_transaction_t tx = {
 		.length = cmd->len * 8, // byte to bit
