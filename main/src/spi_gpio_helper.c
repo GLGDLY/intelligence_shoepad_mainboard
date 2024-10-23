@@ -115,7 +115,7 @@ void spi_sync_init(void) {
 		.capture_cb = spi_sync_falling_edge_handler,
 		.user_data = NULL,
 	};
-	ret = mcpwm_capture_enable_channel(MCPWM_UNIT_0, MCPWM_CAP_0, &capture_config);
+	ret = mcpwm_capture_enable_channel(MCPWM_UNIT_0, MCPWM_SELECT_CAP0, &capture_config);
 	ESP_ERROR_CHECK(ret);
 
 	ret = mcpwm_start(MCPWM_UNIT_0, MCPWM_TIMER_0);
