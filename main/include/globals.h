@@ -13,7 +13,7 @@
 #define TAG "mainboard"
 
 #define DEBUG
-#define DEBUG_SPI_PRINT_DELAY_MS 1000
+#define DEBUG_SPI_PRINT_DELAY_MS 1
 
 // SPI
 #define SPI_GATE_TIMEOUT_MS 20

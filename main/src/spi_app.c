@@ -76,6 +76,8 @@ void spi_tx_request(spi_cmd_t* cmd) {
 	xSemaphoreGive(spi_mux);
 }
 
+extern RtosStaticTask_t spi_app_task;
+
 void spi_drdy_intr_handler(void* arg) {
 	taskENTER_CRITICAL_ISR(&dev_ready_lock);
 	dev_ready |= 1 << ((uint64_t)arg);
@@ -83,11 +85,17 @@ void spi_drdy_intr_handler(void* arg) {
 
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	if (dev_ready == bitfield_all_spi_dev_ready) {
-		extern RtosStaticTask_t spi_app_task;
 		xHigherPriorityTaskWoken = pdTRUE;
 		vTaskNotifyGiveFromISR(spi_app_task.handle, &xHigherPriorityTaskWoken);
 	}
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+bool spi_sync_falling_edge_handler(mcpwm_unit_t mcpwm, mcpwm_capture_channel_id_t cap_channel,
+								   const cap_event_data_t* edata, void* user_data) {
+	// ESP_LOGI(TAG, "Sync signal detected on timer: %d", mcpwm);
+	vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
+	return true;
 }
 
 
@@ -153,6 +161,7 @@ void spi_app_thread(void* par) {
 #endif
 
 		// wait for ${SPI_GATE_TIMEOUT_MS} ms for all devices to be ready, else timeout and directly request data
-		ulTaskNotifyTake(pdTRUE, ms_to_ticks(SPI_GATE_TIMEOUT_MS));
+		// ulTaskNotifyTake(pdTRUE, ms_to_ticks(SPI_GATE_TIMEOUT_MS));
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 	}
 }
