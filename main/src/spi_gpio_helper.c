@@ -121,7 +121,7 @@ void spi_sync_init(void) {
 	gptimer_config_t timer_config = {
 		.clk_src = GPTIMER_CLK_SRC_DEFAULT,
 		.direction = GPTIMER_COUNT_UP,
-		.resolution_hz = MS_TO_FREQ(SPI_GATE_TIMEOUT_MS),
+		.resolution_hz = 1 * 1000 * 1000,
 	};
 	ret = gptimer_new_timer(&timer_config, &timer);
 	ESP_ERROR_CHECK(ret);
@@ -133,7 +133,7 @@ void spi_sync_init(void) {
 	ESP_ERROR_CHECK(ret);
 
 	gptimer_alarm_config_t alarm_config = {
-		.alarm_count = 1,
+		.alarm_count = MS_TO_US(SPI_GATE_TIMEOUT_MS),
 		.flags.auto_reload_on_alarm = true,
 	};
 	ret = gptimer_set_alarm_action(timer, &alarm_config);
