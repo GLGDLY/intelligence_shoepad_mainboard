@@ -3,11 +3,13 @@
 #include "MLX90393_cmds.h"
 #include "esp_log.h"
 #include "freertos/projdefs.h"
+#include "globals.h"
 #include "os.h"
 #include "portmacro.h"
 #include "spi_gpio_helper.h"
 
 #include <driver/spi_master.h>
+#include <esp32/rom/ets_sys.h>
 #include <sdkconfig.h>
 #include <stdint.h>
 
@@ -65,6 +67,11 @@ void spi_tx_request(spi_cmd_t* cmd) {
 	spi_cs(cmd->dev_id);
 
 	xSemaphoreTake(spi_mux, portMAX_DELAY);
+
+	spi_cs(cmd->dev_id);
+
+	// wait 1us
+	ets_delay_us(1);
 
 	spi_transaction_t tx = {
 		.length = cmd->len * 8, // byte to bit
