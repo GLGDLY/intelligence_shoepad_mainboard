@@ -9,6 +9,7 @@
 
 #include <driver/spi_master.h>
 #include <sdkconfig.h>
+#include <stdint.h>
 
 
 /* Globals */
@@ -154,7 +155,8 @@ void spi_app_thread(void* par) {
 			ESP_LOGI(TAG, "Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
 					 mlx90393_data[i].Y, mlx90393_data[i].Z);
 		}
-		ESP_LOGI(TAG, "--------------------------------------------");
+		extern uint64_t timer_cnt;
+		ESP_LOGI(TAG, "%lld--------------------------------------------", timer_cnt);
 		delay(DEBUG_SPI_PRINT_DELAY_MS);
 #endif
 

@@ -92,7 +92,10 @@ uint32_t spi_drdy_get(void) {
 
 __attribute__((weak)) void spi_sync_falling_edge_handler(void* arg) {}
 
+uint64_t timer_cnt = 0;
+
 bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t* event, void* arg) {
+	timer_cnt++;
 	static bool gpio_state = false;
 	gpio_state = !gpio_state;
 	gpio_set_level(SPI_SYNC_PIN, gpio_state);
@@ -111,17 +114,19 @@ void spi_sync_init(void) {
 	};
 	ret = gpio_config(&conf);
 	ESP_ERROR_CHECK(ret);
+	ret = gpio_set_level(SPI_SYNC_PIN, GPIO_LOW);
+	ESP_ERROR_CHECK(ret);
 
 	ret = gpio_install_isr_service(ESP_INTR_FLAG_SHARED | ESP_INTR_FLAG_LOWMED);
 	ESP_ERROR_CHECK(ret);
 	ret = gpio_isr_handler_add(SPI_SYNC_PIN, spi_sync_falling_edge_handler, NULL);
 	ESP_ERROR_CHECK(ret);
 
-	gptimer_handle_t timer;
+	gptimer_handle_t timer = NULL;
 	gptimer_config_t timer_config = {
 		.clk_src = GPTIMER_CLK_SRC_DEFAULT,
 		.direction = GPTIMER_COUNT_UP,
-		.resolution_hz = 1 * 1000 * 1000,
+		.resolution_hz = 1 * 1000 * 1000, // 1MHz, 1 tick = 1us
 	};
 	ret = gptimer_new_timer(&timer_config, &timer);
 	ESP_ERROR_CHECK(ret);
@@ -133,7 +138,8 @@ void spi_sync_init(void) {
 	ESP_ERROR_CHECK(ret);
 
 	gptimer_alarm_config_t alarm_config = {
-		.alarm_count = MS_TO_US(SPI_GATE_TIMEOUT_MS),
+		.reload_count = 0,
+		.alarm_count = 1000000, // MS_TO_US(SPI_GATE_TIMEOUT_MS / 2),
 		.flags.auto_reload_on_alarm = true,
 	};
 	ret = gptimer_set_alarm_action(timer, &alarm_config);
@@ -142,9 +148,6 @@ void spi_sync_init(void) {
 	ESP_ERROR_CHECK(ret);
 
 	ret = gptimer_start(timer);
-	ESP_ERROR_CHECK(ret);
-
-	ret = gpio_set_level(SPI_SYNC_PIN, GPIO_LOW);
 	ESP_ERROR_CHECK(ret);
 
 	ESP_LOGI(TAG, "SPI SYNC init success");
