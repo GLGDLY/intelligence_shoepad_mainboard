@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include "globals.h"
 #include "hal/gpio_types.h"
+#include "os.h"
 #include "soc/gpio_num.h"
 
 #include <stdio.h>
@@ -99,6 +100,12 @@ bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t
 	static bool gpio_state = false;
 	gpio_state = !gpio_state;
 	gpio_set_level(SPI_SYNC_PIN, gpio_state);
+
+	if (!gpio_state) { // falling edge
+		extern RtosStaticTask_t spi_app_task;
+		vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
+		return true;
+	}
 	return false;
 }
 
@@ -115,11 +122,6 @@ void spi_sync_init(void) {
 	ret = gpio_config(&conf);
 	ESP_ERROR_CHECK(ret);
 	ret = gpio_set_level(SPI_SYNC_PIN, GPIO_LOW);
-	ESP_ERROR_CHECK(ret);
-
-	ret = gpio_install_isr_service(ESP_INTR_FLAG_SHARED | ESP_INTR_FLAG_LOWMED);
-	ESP_ERROR_CHECK(ret);
-	ret = gpio_isr_handler_add(SPI_SYNC_PIN, spi_sync_falling_edge_handler, NULL);
 	ESP_ERROR_CHECK(ret);
 
 	gptimer_handle_t timer = NULL;
