@@ -136,7 +136,13 @@ void spi_app_thread(void* par) {
 		}
 	}
 
+#ifdef DEBUG
+	uint32_t last_ticks = xTaskGetTickCount();
+#endif
+
 	while (1) {
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
 		uint32_t drdy = spi_drdy_get();
 		if (drdy) {
 			FOR_EACH_SPI_DEV(i) {
@@ -151,17 +157,15 @@ void spi_app_thread(void* par) {
 		spi_cs_clear();
 
 #ifdef DEBUG
-		FOR_EACH_SPI_DEV(i) {
-			ESP_LOGI(TAG, "Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
-					 mlx90393_data[i].Y, mlx90393_data[i].Z);
+		if (xTaskGetTickCount() - last_ticks >= 1000) {
+			FOR_EACH_SPI_DEV(i) {
+				ESP_LOGI(TAG, "Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
+						 mlx90393_data[i].Y, mlx90393_data[i].Z);
+			}
+			extern uint64_t timer_cnt;
+			ESP_LOGI(TAG, "%lld--------------------------------------------", timer_cnt);
+			last_ticks = xTaskGetTickCount();
 		}
-		extern uint64_t timer_cnt;
-		ESP_LOGI(TAG, "%lld--------------------------------------------", timer_cnt);
-		delay(DEBUG_SPI_PRINT_DELAY_MS);
 #endif
-
-		// wait for ${SPI_GATE_TIMEOUT_MS} ms for all devices to be ready, else timeout and directly request data
-		// ulTaskNotifyTake(pdTRUE, ms_to_ticks(SPI_GATE_TIMEOUT_MS));
-		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 	}
 }

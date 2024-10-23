@@ -98,13 +98,21 @@ uint64_t timer_cnt = 0;
 bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t* event, void* arg) {
 	timer_cnt++;
 	static bool gpio_state = false;
-	gpio_state = !gpio_state;
+	static uint8_t low_cnt = 0;
+	if (gpio_state == 0 && low_cnt >= 10) {
+		gpio_state = !gpio_state;
+	} else if (gpio_state == 1) {
+		gpio_state = !gpio_state;
+		low_cnt = 0;
+	}
 	gpio_set_level(SPI_SYNC_PIN, gpio_state);
 
-	if (!gpio_state) { // falling edge
-		extern RtosStaticTask_t spi_app_task;
-		vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
-		return true;
+	if (!gpio_state) {
+		if (low_cnt++ == 0) { // falling edge
+			extern RtosStaticTask_t spi_app_task;
+			vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
+			return true;
+		}
 	}
 	return false;
 }
@@ -142,7 +150,7 @@ void spi_sync_init(void) {
 
 	gptimer_alarm_config_t alarm_config = {
 		.reload_count = 0,
-		.alarm_count = 1000000, // MS_TO_US(SPI_GATE_TIMEOUT_MS / 2),
+		.alarm_count = 100,
 		.flags.auto_reload_on_alarm = true,
 	};
 	ret = gptimer_set_alarm_action(timer, &alarm_config);
