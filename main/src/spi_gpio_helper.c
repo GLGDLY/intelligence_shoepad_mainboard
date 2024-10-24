@@ -113,7 +113,9 @@ bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t
 	if (gpio_state == 0) {
 		if (low_cnt++ == 0) { // falling edge
 			extern RtosStaticTask_t spi_app_task;
-			vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
+			if (spi_app_task.handle != NULL && eTaskGetState(spi_app_task.handle) == eBlocked) {
+				vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
+			}
 			return true;
 		}
 	}
