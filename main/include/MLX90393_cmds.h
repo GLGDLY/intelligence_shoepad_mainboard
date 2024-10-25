@@ -66,6 +66,6 @@ mlx90393_reg_data_t mlx90393_RR_request(const uint8_t dev_id, const uint8_t reg)
 mlx90393_status_t mlx90393_WR_request(const uint8_t dev_id, const uint8_t reg, const uint8_t data[2]);
 
 bool mlx90393_RM_data_is_valid(const mlx90393_status_t data);
-
+bool mlx90393_assert_SM_mode(const mlx90393_status_t data);
 
 #endif // _MLX90393_CMDS_H

@@ -118,7 +118,8 @@ mlx90393_status_t mlx90393_WR_request(const uint8_t dev_id, const uint8_t reg, c
 	return status;
 }
 
-bool mlx90393_RM_data_is_valid(const mlx90393_status_t data) {
-	// return !data.error;
+bool mlx90393_RM_data_is_valid(const mlx90393_status_t data) { return !data.error; }
+
+bool mlx90393_assert_SM_mode(const mlx90393_status_t data) {
 	return (data.raw >> 4) == 0x2; // sm_mode, no error
 }

@@ -125,21 +125,13 @@ void spi_post_init(void) {
 				goto retry;
 			}
 
-			status = mlx90393_SM_request(i);
-			if (mlx90393_RM_data_is_valid(status)) {
-				ESP_LOGI(TAG, "Init SPI dev: %d success: %x", i, status.raw);
-			} else {
-				ESP_LOGE(TAG, "Init SPI dev: %d failed: %x", i, status.raw);
-				goto retry;
-			}
-
 			const uint8_t reg_data[2] = {0x0, 0x0};
 
 			status = mlx90393_WR_request(i, 0x01, reg_data);
 			if (mlx90393_RM_data_is_valid(status)) {
 				ESP_LOGI(TAG, "Write reg: 0x01, Data: 0x%02x%02x", reg_data[0], reg_data[1]);
 			} else {
-				ESP_LOGE(TAG, "Failed to write reg: 0x01: %x", status.raw);
+				ESP_LOGE(TAG, "Failed to write reg 0x01: %x", status.raw);
 				goto retry;
 			}
 
@@ -153,7 +145,15 @@ void spi_post_init(void) {
 					goto retry;
 				}
 			} else {
-				ESP_LOGE(TAG, "Failed to read reg: 0x01: %x", reg_ret.status.raw);
+				ESP_LOGE(TAG, "Failed to read reg 0x01: %x", reg_ret.status.raw);
+				goto retry;
+			}
+
+			status = mlx90393_SM_request(i);
+			if (mlx90393_assert_SM_mode(status)) {
+				ESP_LOGI(TAG, "Init SPI dev: %d success: %x", i, status.raw);
+			} else {
+				ESP_LOGE(TAG, "Init SPI dev: %d failed: %x", i, status.raw);
 				goto retry;
 			}
 
