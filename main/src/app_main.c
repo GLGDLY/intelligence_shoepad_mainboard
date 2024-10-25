@@ -20,8 +20,9 @@ void app_main(void) {
 
 	RtosStaticTaskCreate(spi_app_task, 4, NULL);
 
-	// disable wdt for spi_app_task
-	esp_task_wdt_delete(spi_app_task.handle);
+	// disable wdt for cpus
+	esp_task_wdt_delete(xTaskGetIdleTaskHandleForCore(0));
+	esp_task_wdt_delete(xTaskGetIdleTaskHandleForCore(1));
 
 	// TODO: test and add back mqtt stuff later
 	// mqtt5_app_start();
