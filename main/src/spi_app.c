@@ -202,6 +202,6 @@ void spi_app_thread(void* par) {
 		}
 #endif
 
-		// ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 	}
 }

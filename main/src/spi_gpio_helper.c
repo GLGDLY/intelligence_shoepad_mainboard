@@ -101,6 +101,11 @@ bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t
 	static bool gpio_state = false;
 	static uint8_t low_cnt = 1;
 	if (gpio_state == 0 && low_cnt >= 30) {
+		if (spi_drdy_get() != 0) {
+			low_cnt = 0;
+			spi_sync_falling_edge_handler(arg);
+			return true;
+		}
 		gpio_state = !gpio_state;
 	} else if (gpio_state == 1) {
 		gpio_state = !gpio_state;
@@ -109,10 +114,9 @@ bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t
 	gpio_set_level(SPI_SYNC_PIN, !gpio_state);
 
 	if (gpio_state == 0) {
-		if (low_cnt++ == 0) { // falling edge
-			spi_sync_falling_edge_handler(arg);
-			return true;
-		}
+		low_cnt++;
+		spi_sync_falling_edge_handler(arg);
+		return true;
 	}
 	return false;
 }
