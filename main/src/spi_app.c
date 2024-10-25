@@ -97,11 +97,13 @@ extern RtosStaticTask_t spi_app_task;
 // 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 // }
 
-void spi_sync_falling_edge_handler(void* arg) {
+void drdy_notify_task_handler(void* arg) {
 	// ESP_LOGI(TAG, "Sync signal detected on timer: %d", mcpwm);
+	taskENTER_CRITICAL_ISR(&dev_ready_lock);
 	if (spi_app_task.handle != NULL && eTaskGetState(spi_app_task.handle) == eBlocked) {
 		vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
 	}
+	taskEXIT_CRITICAL_ISR(&dev_ready_lock);
 }
 
 void spi_post_init(void) {
@@ -202,6 +204,6 @@ void spi_app_thread(void* par) {
 		}
 #endif
 
-		// ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 	}
 }
