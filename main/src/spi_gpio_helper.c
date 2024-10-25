@@ -100,7 +100,7 @@ gptimer_handle_t timer = NULL;
 bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t* event, void* arg) {
 	static bool gpio_state = false;
 	static uint8_t low_cnt = 1;
-	if (gpio_state == 0 && low_cnt >= 30) {
+	if (gpio_state == 0 && low_cnt >= SPI_SYNC_LOW_TIME_ALARM_COUNT) {
 		if (spi_drdy_get() != 0) {
 			low_cnt = 0;
 			spi_sync_falling_edge_handler(arg);
@@ -154,7 +154,7 @@ void spi_sync_init(void) {
 
 	gptimer_alarm_config_t alarm_config = {
 		.reload_count = 0,
-		.alarm_count = 100,
+		.alarm_count = SPI_SYNC_ALARM_US,
 		.flags.auto_reload_on_alarm = true,
 	};
 	ret = gptimer_set_alarm_action(timer, &alarm_config);
