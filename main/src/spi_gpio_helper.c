@@ -100,7 +100,7 @@ gptimer_handle_t timer = NULL;
 bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t* event, void* arg) {
 	static bool gpio_state = false;
 	static uint8_t low_cnt = 1;
-	if (gpio_state == 0 && low_cnt >= 20) {
+	if (gpio_state == 0 && low_cnt >= 30) {
 		gpio_state = !gpio_state;
 	} else if (gpio_state == 1) {
 		gpio_state = !gpio_state;

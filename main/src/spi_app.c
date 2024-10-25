@@ -6,10 +6,10 @@
 #include "globals.h"
 #include "os.h"
 #include "portmacro.h"
-#include "soc/soc.h"
 #include "spi_gpio_helper.h"
 
 #include <driver/spi_master.h>
+#include <esp_task_wdt.h>
 #include <sdkconfig.h>
 #include <stdint.h>
 
@@ -180,8 +180,6 @@ void spi_app_thread(void* par) {
 #endif
 
 	while (1) {
-		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
 		uint32_t drdy = spi_drdy_get();
 		if (drdy) {
 			FOR_EACH_SPI_DEV(i) {
@@ -204,5 +202,10 @@ void spi_app_thread(void* par) {
 			last_ticks = xTaskGetTickCount();
 		}
 #endif
+
+		// ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+		// wdt
+		esp_task_wdt_reset();
 	}
 }
