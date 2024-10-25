@@ -62,7 +62,7 @@ void spi_cs_clear(void) {
 	}
 }
 
-__attribute__((weak)) void spi_drdy_intr_handler(void* arg){};
+// __attribute__((weak)) void spi_drdy_intr_handler(void* arg){};
 
 void spi_drdy_init(void) {
 	ESP_LOGI(TAG, "SPI DRDY init");
@@ -96,13 +96,11 @@ uint32_t spi_drdy_get(void) {
 __attribute__((weak)) void spi_sync_falling_edge_handler(void* arg) {}
 
 gptimer_handle_t timer = NULL;
-uint64_t timer_cnt = 0;
 
 bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t* event, void* arg) {
-	timer_cnt++;
 	static bool gpio_state = false;
 	static uint8_t low_cnt = 1;
-	if (gpio_state == 0 && low_cnt >= 10) {
+	if (gpio_state == 0 && low_cnt >= 20) {
 		gpio_state = !gpio_state;
 	} else if (gpio_state == 1) {
 		gpio_state = !gpio_state;
@@ -112,10 +110,7 @@ bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t
 
 	if (gpio_state == 0) {
 		if (low_cnt++ == 0) { // falling edge
-			extern RtosStaticTask_t spi_app_task;
-			if (spi_app_task.handle != NULL && eTaskGetState(spi_app_task.handle) == eBlocked) {
-				vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
-			}
+			spi_sync_falling_edge_handler(arg);
 			return true;
 		}
 	}

@@ -85,22 +85,24 @@ void spi_tx_request(spi_cmd_t* cmd) {
 
 extern RtosStaticTask_t spi_app_task;
 
-void spi_drdy_intr_handler(void* arg) {
-	taskENTER_CRITICAL_ISR(&dev_ready_lock);
-	dev_ready |= 1 << ((uint64_t)arg);
-	taskEXIT_CRITICAL_ISR(&dev_ready_lock);
+// void spi_drdy_intr_handler(void* arg) {
+// 	taskENTER_CRITICAL_ISR(&dev_ready_lock);
+// 	dev_ready |= 1 << ((uint64_t)arg);
+// 	taskEXIT_CRITICAL_ISR(&dev_ready_lock);
 
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	if (dev_ready == bitfield_all_spi_dev_ready) {
-		xHigherPriorityTaskWoken = pdTRUE;
-		vTaskNotifyGiveFromISR(spi_app_task.handle, &xHigherPriorityTaskWoken);
-	}
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
+// 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+// 	if (dev_ready == bitfield_all_spi_dev_ready) {
+// 		xHigherPriorityTaskWoken = pdTRUE;
+// 		vTaskNotifyGiveFromISR(spi_app_task.handle, &xHigherPriorityTaskWoken);
+// 	}
+// 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+// }
 
 void spi_sync_falling_edge_handler(void* arg) {
 	// ESP_LOGI(TAG, "Sync signal detected on timer: %d", mcpwm);
-	vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
+	if (spi_app_task.handle != NULL && eTaskGetState(spi_app_task.handle) == eBlocked) {
+		vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
+	}
 }
 
 void spi_post_init(void) {
@@ -125,7 +127,7 @@ void spi_post_init(void) {
 				goto retry;
 			}
 
-			const uint8_t reg_data[2] = {0x0, 0x0};
+			const uint8_t reg_data[2] = {0x08, 0x0};
 
 			status = mlx90393_WR_request(i, 0x01, reg_data);
 			if (mlx90393_RM_data_is_valid(status)) {
@@ -198,8 +200,7 @@ void spi_app_thread(void* par) {
 				ESP_LOGI(TAG, "Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
 						 mlx90393_data[i].Y, mlx90393_data[i].Z);
 			}
-			extern uint64_t timer_cnt;
-			ESP_LOGI(TAG, "%lld--------------------------------------------", timer_cnt);
+			ESP_LOGI(TAG, "--------------------------------------------");
 			last_ticks = xTaskGetTickCount();
 		}
 #endif
