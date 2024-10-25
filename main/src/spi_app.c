@@ -9,7 +9,6 @@
 #include "spi_gpio_helper.h"
 
 #include <driver/spi_master.h>
-#include <esp_task_wdt.h>
 #include <sdkconfig.h>
 #include <stdint.h>
 
@@ -204,8 +203,5 @@ void spi_app_thread(void* par) {
 #endif
 
 		// ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-		// wdt
-		esp_task_wdt_reset();
 	}
 }

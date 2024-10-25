@@ -9,6 +9,8 @@
 #include "os.h"
 #include "spi_app.h"
 
+#include <esp_task_wdt.h>
+
 RtosDefineTaskSized(spi_app_task, spi_app_thread, 4096);
 
 void app_main(void) {
@@ -17,6 +19,9 @@ void app_main(void) {
 	ESP_LOGI(TAG, "[APP] IDF version: %s", esp_get_idf_version());
 
 	RtosStaticTaskCreate(spi_app_task, 4, NULL);
+
+	// disable wdt for spi_app_task
+	esp_task_wdt_delete(spi_app_task.handle);
 
 	// TODO: test and add back mqtt stuff later
 	// mqtt5_app_start();
