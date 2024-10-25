@@ -62,7 +62,7 @@ void spi_cs_clear(void) {
 	}
 }
 
-__attribute__((weak)) void drdy_notify_task_handler(void* arg) {}
+// __attribute__((weak)) void spi_drdy_intr_handler(void* arg){};
 
 void spi_drdy_init(void) {
 	ESP_LOGI(TAG, "SPI DRDY init");
@@ -77,12 +77,12 @@ void spi_drdy_init(void) {
 	ret = gpio_config(&conf);
 	ESP_ERROR_CHECK(ret);
 
-	ret = gpio_install_isr_service(ESP_INTR_FLAG_SHARED | ESP_INTR_FLAG_LOWMED);
-	ESP_ERROR_CHECK(ret);
-	FOR_EACH_SPI_DEV(i) {
-		ret = gpio_isr_handler_add(SPI_DRDY_PINS[i], drdy_notify_task_handler, NULL);
-		ESP_ERROR_CHECK(ret);
-	}
+	// ret = gpio_install_isr_service(ESP_INTR_FLAG_SHARED | ESP_INTR_FLAG_LOWMED);
+	// ESP_ERROR_CHECK(ret);
+	// FOR_EACH_SPI_DEV(i) {
+	// 	ret = gpio_isr_handler_add(SPI_DRDY_PINS[i], spi_drdy_intr_handler, (void*)(uint64_t)i);
+	// 	ESP_ERROR_CHECK(ret);
+	// }
 }
 
 uint32_t spi_drdy_get(void) {
@@ -92,6 +92,8 @@ uint32_t spi_drdy_get(void) {
 }
 
 /* SPI Sync */
+
+__attribute__((weak)) void spi_sync_falling_edge_handler(void* arg) {}
 
 gptimer_handle_t timer = NULL;
 
@@ -106,12 +108,12 @@ bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t
 	}
 	gpio_set_level(SPI_SYNC_PIN, !gpio_state);
 
-	// if (gpio_state == 0) {
-	// 	if (low_cnt++ == 0) { // falling edge
-	// 		spi_sync_falling_edge_handler(arg);
-	// 		return true;
-	// 	}
-	// }
+	if (gpio_state == 0) {
+		if (low_cnt++ == 0) { // falling edge
+			spi_sync_falling_edge_handler(arg);
+			return true;
+		}
+	}
 	return false;
 }
 

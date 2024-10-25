@@ -14,13 +14,15 @@
 RtosDefineTaskSized(spi_app_task, spi_app_thread, 4096);
 
 void app_main(void) {
-	esp_task_wdt_deinit();
-
 	ESP_LOGI(TAG, "[APP] Startup..");
 	ESP_LOGI(TAG, "[APP] Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
 	ESP_LOGI(TAG, "[APP] IDF version: %s", esp_get_idf_version());
 
 	RtosStaticTaskCreate(spi_app_task, 4, NULL);
+
+	// disable wdt for cpus
+	esp_task_wdt_delete(xTaskGetIdleTaskHandleForCore(0));
+	esp_task_wdt_delete(xTaskGetIdleTaskHandleForCore(1));
 
 	// TODO: test and add back mqtt stuff later
 	// mqtt5_app_start();
