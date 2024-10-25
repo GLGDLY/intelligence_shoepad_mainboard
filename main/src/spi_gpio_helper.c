@@ -98,7 +98,7 @@ gptimer_handle_t timer = NULL;
 bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t* event, void* arg) {
 	static bool gpio_state = false;
 	static uint8_t low_cnt = 1;
-	if (gpio_state == 0 && low_cnt >= SPI_SYNC_LOW_TIME_ALARM_COUNT) {
+	if (gpio_state == 0 && low_cnt >= 30) {
 		gpio_state = !gpio_state;
 	} else if (gpio_state == 1) {
 		gpio_state = !gpio_state;
@@ -106,13 +106,12 @@ bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t
 	}
 	gpio_set_level(SPI_SYNC_PIN, !gpio_state);
 
-	if (gpio_state == 0) {
-		// 	if (low_cnt++ == 0) { // falling edge
-		// 		spi_sync_falling_edge_handler(arg);
-		// 		return true;
-		// 	}
-		low_cnt++;
-	}
+	// if (gpio_state == 0) {
+	// 	if (low_cnt++ == 0) { // falling edge
+	// 		spi_sync_falling_edge_handler(arg);
+	// 		return true;
+	// 	}
+	// }
 	return false;
 }
 
@@ -149,7 +148,7 @@ void spi_sync_init(void) {
 
 	gptimer_alarm_config_t alarm_config = {
 		.reload_count = 0,
-		.alarm_count = SPI_SYNC_ALARM_US,
+		.alarm_count = 100,
 		.flags.auto_reload_on_alarm = true,
 	};
 	ret = gptimer_set_alarm_action(timer, &alarm_config);

@@ -14,7 +14,7 @@
 RtosDefineTaskSized(spi_app_task, spi_app_thread, 4096);
 
 void app_main(void) {
-	// esp_task_wdt_deinit();
+	esp_task_wdt_deinit();
 
 	ESP_LOGI(TAG, "[APP] Startup..");
 	ESP_LOGI(TAG, "[APP] Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
