@@ -1,9 +1,9 @@
 #include "spi_gpio_helper.h"
 
+#include "debug.h"
 #include "esp_log.h"
 #include "globals.h"
 #include "hal/gpio_types.h"
-#include "os.h"
 #include "soc/gpio_num.h"
 
 #include <stdio.h>
@@ -21,7 +21,7 @@ const gpio_num_t SPI_CS_PINS[] = {SPI_CS_TABLE(X_EXPAND_CS_CONSTRUCT)};
 const gpio_num_t SPI_DRDY_PINS[NUM_OF_SPI_DEV] = {SPI_DRDY_TABLE(X_EXPAND_DRDY_CONSTRUCT)};
 
 void spi_cs_init(void) {
-	ESP_LOGI(TAG, "SPI CS init");
+	LOGI("SPI CS init");
 	esp_err_t ret;
 
 	gpio_config_t conf = {
@@ -42,7 +42,7 @@ void spi_cs_init(void) {
 
 void spi_cs(uint8_t dev_id) {
 	if (dev_id >= NUM_OF_SPI_DEV || dev_id < 0) {
-		ESP_LOGE(TAG, "Invalid device ID: %d", dev_id);
+		LOGE("Invalid device ID: %d", dev_id);
 		return;
 	}
 
@@ -65,7 +65,7 @@ void spi_cs_clear(void) {
 // __attribute__((weak)) void spi_drdy_intr_handler(void* arg){};
 
 void spi_drdy_init(void) {
-	ESP_LOGI(TAG, "SPI DRDY init");
+	LOGI("SPI DRDY init");
 	esp_err_t ret;
 
 	gpio_config_t conf = {
@@ -122,7 +122,7 @@ bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t
 }
 
 void spi_sync_init(void) {
-	ESP_LOGI(TAG, "SPI SYNC init");
+	LOGI("SPI SYNC init");
 	esp_err_t ret;
 
 	// spi sync is inverted
@@ -162,7 +162,7 @@ void spi_sync_init(void) {
 	ret = gptimer_enable(timer);
 	ESP_ERROR_CHECK(ret);
 
-	ESP_LOGI(TAG, "SPI SYNC init success");
+	LOGI("SPI SYNC init success");
 }
 
 void spi_sync_start(void) {

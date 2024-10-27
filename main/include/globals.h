@@ -13,7 +13,7 @@
 #define TAG "mainboard"
 
 #define DEBUG
-#define DEBUG_SPI_PRINT_DELAY_MS 1
+#define DEBUG_BUF_SIZE 2048
 
 // SPI
 #define SPI_SYNC_ALARM_US			  100
@@ -70,13 +70,5 @@ typedef enum {
 	NUM_OF_GPIO_LEVEL,
 } GPIO_LEVEL;
 
-
-/* Internal */
-#ifndef DEBUG
-	#ifdef ESP_LOG_LEVEL_LOCAL
-		#undef ESP_LOG_LEVEL_LOCAL
-	#endif
-	#define ESP_LOG_LEVEL_LOCAL(level, tag, format, ...)
-#endif // DEBUG
 
 #endif // _CONFIG_H
