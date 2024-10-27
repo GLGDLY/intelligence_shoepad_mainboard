@@ -1,15 +1,5 @@
 menu "Configuration"
 
-    config BROKER_URL
-        string "Broker URL"
-        default "mqtt://mqtt.eclipseprojects.io"
-        help
-            URL of the broker to connect to
-
-    config BROKER_URL_FROM_STDIN
-        bool
-        default y if BROKER_URL = "FROM_STDIN"
-        
     config FREERTOS_CHECK_STACKOVERFLOW_PTRVAL
         bool
         default y
@@ -82,5 +72,17 @@ menu "Configuration"
         default 10
         help
             USB Serial Console TX Buffer Timeout Ticks
+   
+    config MQTT_TASK_CORE_SELECTION_ENABLED
+        bool "Enable MQTT Core Selection"
+        default y
+        help
+            Enable MQTT Core Selection        
+
+    config MQTT_TASK_CORE_SELECTION
+        int "MQTT Task Core Selection"
+        default 1
+        help
+            MQTT Task Core Selection
     
 endmenu

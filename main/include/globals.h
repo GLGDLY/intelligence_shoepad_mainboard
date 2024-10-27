@@ -2,6 +2,7 @@
 #define _CONFIG_H
 
 #include <esp_log.h>
+#include <esp_wifi_types_generic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +12,10 @@
 
 // Global
 #define TAG "mainboard"
+
+#define WIFI_SSID "ssid"
+#define WIFI_PWD  "password"
+#define WIFI_MODE WIFI_AUTH_WPA2_PSK
 
 #define DEBUG
 #define DEBUG_SPI_PRINT_DELAY_MS 1

@@ -20,8 +20,7 @@ void app_main(void) {
 
 	RtosStaticTaskCreate(spi_app_task, 4, NULL);
 
-	// TODO: test and add back mqtt stuff later
-	// mqtt5_app_start();
+	mqtt5_app_start();
 }
 
 // stack overflow handler
