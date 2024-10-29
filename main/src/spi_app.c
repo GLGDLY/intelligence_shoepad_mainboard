@@ -104,6 +104,34 @@ void spi_sync_falling_edge_handler(void* arg) {
 	}
 }
 
+bool spi_write_reg_with_assert(uint8_t dev_id, uint8_t reg, uint8_t* reg_data) {
+	mlx90393_status_t status;
+	status = mlx90393_WR_request(dev_id, reg, reg_data);
+	if (mlx90393_RM_data_is_valid(status)) {
+		ESP_LOGI(TAG, "Write reg: 0x%02x, Data: 0x%02x%02x", reg, reg_data[0], reg_data[1]);
+	} else {
+		ESP_LOGE(TAG, "Failed to write reg 0x%02x: %x", reg, status.raw);
+		return false;
+	}
+
+	delay(10);
+
+	mlx90393_reg_data_t reg_ret = mlx90393_RR_request(dev_id, reg);
+	if (mlx90393_RM_data_is_valid(reg_ret.status)) {
+		if (reg_ret.data[0] == reg_data[0] && reg_ret.data[1] == reg_data[1]) {
+			ESP_LOGI(TAG, "Read reg: 0x%02x, Data: 0x%02x%02x", reg, reg_ret.data[0], reg_ret.data[1]);
+		} else {
+			ESP_LOGE(TAG, "Read assert failed: 0x%02x%02x != 0x%02x%02x", reg_ret.data[0], reg_ret.data[1], reg_data[0],
+					 reg_data[1]);
+			return false;
+		}
+	} else {
+		ESP_LOGE(TAG, "Failed to read reg 0x%02x: %x", reg, reg_ret.status.raw);
+		return false;
+	}
+	return true;
+}
+
 void spi_post_init(void) {
 	uint8_t tx_data[1] = {0};
 	uint8_t rx_data[1] = {0};
@@ -128,29 +156,27 @@ void spi_post_init(void) {
 
 			delay(10);
 
-			const uint8_t reg_data[2] = {0x08, 0x0};
+			uint8_t reg_data[2] = {0};
 
-			status = mlx90393_WR_request(i, 0x01, reg_data);
-			if (mlx90393_RM_data_is_valid(status)) {
-				ESP_LOGI(TAG, "Write reg: 0x01, Data: 0x%02x%02x", reg_data[0], reg_data[1]);
-			} else {
-				ESP_LOGE(TAG, "Failed to write reg 0x01: %x", status.raw);
+			reg_data[0] = 0x00; // BIST disabled
+			reg_data[1] = 0x5C; // Hall plate spinning rate = DEFAULT, GAIN_SEL = 5
+			if (!spi_write_reg_with_assert(i, 0x00, (uint8_t*)reg_data)) {
 				goto retry;
 			}
 
 			delay(10);
 
-			mlx90393_reg_data_t reg_ret = mlx90393_RR_request(i, 0x01);
-			if (mlx90393_RM_data_is_valid(reg_ret.status)) {
-				if (reg_ret.data[0] == reg_data[0] && reg_ret.data[1] == reg_data[1]) {
-					ESP_LOGI(TAG, "Read reg: 0x01, Data: 0x%02x%02x", reg_ret.data[0], reg_ret.data[1]);
-				} else {
-					ESP_LOGE(TAG, "Read assert failed: 0x%02x%02x != 0x%02x%02x", reg_ret.data[0], reg_ret.data[1],
-							 reg_data[0], reg_data[1]);
-					goto retry;
-				}
-			} else {
-				ESP_LOGE(TAG, "Failed to read reg 0x01: %x", reg_ret.status.raw);
+			reg_data[0] = 0x08; // enable trigger for sync
+			reg_data[1] = 0x00;
+			if (!spi_write_reg_with_assert(i, 0x01, (uint8_t*)reg_data)) {
+				goto retry;
+			}
+
+			delay(10);
+
+			reg_data[0] = 0x02;
+			reg_data[1] = 0xB4; // RES for magnetic measurement = 0
+			if (!spi_write_reg_with_assert(i, 0x02, (uint8_t*)reg_data)) {
 				goto retry;
 			}
 
