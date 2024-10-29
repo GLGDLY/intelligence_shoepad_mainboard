@@ -44,23 +44,23 @@ esp_log_level_t debug_read_once_nolock(char* buf, const size_t max_len) {
 	return level;
 }
 
+static char print_buf[DEBUG_BUF_SIZE] = {0};
 
 void debug_print(const esp_log_level_t level, const char* format, ...) {
 	va_list args;
 	va_start(args, format);
 
-	char _buf[DEBUG_BUF_SIZE] = {0};
-	_buf[0] = level;
-	vsnprintf(_buf + 1, DEBUG_BUF_SIZE - 1, format, args);
+	print_buf[0] = level;
+	vsnprintf(print_buf + 1, DEBUG_BUF_SIZE - 1, format, args);
 
-	const size_t len = strlen(_buf) + 1; // include null terminator
+	const size_t len = strlen(print_buf) + 1; // include null terminator
 
 	if (len > debug_get_available_slots()) { // buffer full
 		return;
 	}
 
 	xSemaphoreTake(debug_buf_mux, portMAX_DELAY);
-	debug_write_nolock(_buf, len);
+	debug_write_nolock(print_buf, len);
 	xSemaphoreGive(debug_buf_mux);
 
 	extern RtosStaticTask_t debug_task;
@@ -76,14 +76,13 @@ void debug_init() { debug_buf_mux = xSemaphoreCreateMutex(); }
 void debug_thread(void* par) {
 	debug_init();
 
+	char _buf[DEBUG_BUF_SIZE] = {0};
 	while (1) {
 		ulTaskNotifyTake(pdTRUE, ms_to_ticks(1000));
 		if (debug_buf_head != debug_buf_end) {
 			xSemaphoreTake(debug_buf_mux, portMAX_DELAY);
 
 			while (debug_buf_head != debug_buf_end) {
-				char _buf[DEBUG_BUF_SIZE] = {0};
-
 				const esp_log_level_t level = debug_read_once_nolock(_buf, DEBUG_BUF_SIZE);
 				ESP_LOG_LEVEL_LOCAL(level, TAG, "%s", _buf);
 			}
