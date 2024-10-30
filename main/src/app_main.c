@@ -5,7 +5,6 @@
  */
 
 #include "globals.h"
-#include "mqtt_app.h"
 #include "os.h"
 #include "spi_app.h"
 
@@ -19,8 +18,6 @@ void app_main(void) {
 	ESP_LOGI(TAG, "[APP] IDF version: %s", esp_get_idf_version());
 
 	RtosStaticTaskCreate(spi_app_task, 4, NULL);
-
-	mqtt5_app_start();
 }
 
 // stack overflow handler
