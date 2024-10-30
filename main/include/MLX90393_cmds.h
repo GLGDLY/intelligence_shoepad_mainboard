@@ -39,10 +39,10 @@ typedef union {
 	uint8_t raw[9];
 	struct {
 		mlx90393_status_t status;
-		uint16_t T;
-		uint16_t X;
-		uint16_t Y;
-		uint16_t Z;
+		int16_t Z;
+		int16_t Y;
+		int16_t X;
+		int16_t T;
 	};
 } mlx90393_data_t;
 

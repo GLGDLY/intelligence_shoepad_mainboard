@@ -222,13 +222,13 @@ void spi_app_thread(void* par) {
 					mlx90393_data[i] = mlx90393_RM_request(i);
 					dev_ready &= ~(1 << i); // clear bit
 				} else {
-					memset(&mlx90393_data[i], 0, sizeof(mlx90393_data_t));
+					// memset(&mlx90393_data[i], 0, sizeof(mlx90393_data_t));
 				}
 			}
 		}
 
 #ifdef DEBUG
-		if (xTaskGetTickCount() - last_ticks >= 1000) {
+		if (xTaskGetTickCount() - last_ticks >= 5) {
 			FOR_EACH_SPI_DEV(i) {
 				ESP_LOGI(TAG, "Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
 						 mlx90393_data[i].Y, mlx90393_data[i].Z);

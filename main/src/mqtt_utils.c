@@ -73,7 +73,7 @@ void connect_to_wifi(void) {
 	ESP_ERROR_CHECK(esp_wifi_start());
 
 	while (!is_wifi_connected) {
-		delay(ms_to_ticks(500));
+		delay(ms_to_ticks(20000));
 		ESP_LOGI(TAG, "Connecting to WiFi...");
 	}
 }
