@@ -20,7 +20,7 @@ static const char app_topics[] = "app/#";
 static char esp_id[6 * 2 + 1] = {0};
 static char status_topic[sizeof(esp_id) + 4 + 7] = {0};
 
-__attribute__((constructor(200))) void __get_esp_id(void) {
+void esp_id_init(void) {
 	uint8_t mac[6];
 	esp_read_mac(mac, ESP_MAC_WIFI_STA);
 	sprintf(esp_id, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
@@ -102,6 +102,8 @@ void mqtt5_app_start(void) {
 	esp_log_level_set("esp-tls", ESP_LOG_VERBOSE);
 	esp_log_level_set("transport", ESP_LOG_VERBOSE);
 	esp_log_level_set("outbox", ESP_LOG_VERBOSE);
+
+	esp_id_init();
 
 	connect_to_wifi();
 
