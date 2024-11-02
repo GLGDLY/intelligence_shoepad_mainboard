@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "freertos/projdefs.h"
 #include "globals.h"
+#include "mqtt_app.h"
 #include "os.h"
 #include "portmacro.h"
 #include "spi_gpio_helper.h"
@@ -221,14 +222,15 @@ void spi_app_thread(void* par) {
 				if (drdy & (1 << i)) {
 					mlx90393_data[i] = mlx90393_RM_request(i);
 					dev_ready &= ~(1 << i); // clear bit
-				} else {
-					// memset(&mlx90393_data[i], 0, sizeof(mlx90393_data_t));
 				}
+				// else {
+				// 	memset(&mlx90393_data[i], 0, sizeof(mlx90393_data_t));
+				// }
 			}
 		}
 
 #ifdef DEBUG
-		if (xTaskGetTickCount() - last_ticks >= 5) {
+		if (xTaskGetTickCount() - last_ticks >= DEBUG_SPI_PRINT_INTVL_MS) {
 			FOR_EACH_SPI_DEV(i) {
 				ESP_LOGI(TAG, "Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
 						 mlx90393_data[i].Y, mlx90393_data[i].Z);
