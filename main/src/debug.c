@@ -79,6 +79,8 @@ void debug_thread(void* par) {
 	char _buf[DEBUG_BUF_SIZE] = {0};
 	while (1) {
 		ulTaskNotifyTake(pdTRUE, ms_to_ticks(1000));
+		ESP_LOGI(TAG, "Debug thread running");
+		ESP_LOGI(TAG, "Available slots: %d", debug_get_available_slots());
 		if (debug_buf_head != debug_buf_end) {
 			xSemaphoreTake(debug_buf_mux, portMAX_DELAY);
 

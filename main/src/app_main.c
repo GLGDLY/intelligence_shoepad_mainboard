@@ -22,6 +22,9 @@ void app_main(void) {
 	ESP_LOGI(TAG, "[APP] Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
 	ESP_LOGI(TAG, "[APP] IDF version: %s", esp_get_idf_version());
 
+	esp_log_level_set("*", ESP_LOG_NONE);
+	esp_log_level_set(TAG, ESP_LOG_INFO);
+
 	RtosStaticTaskCreateToCore(spi_app_task, 4, NULL, 0);
 
 #ifdef DEBUG
