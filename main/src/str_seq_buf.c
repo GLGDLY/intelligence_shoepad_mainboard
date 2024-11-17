@@ -8,9 +8,14 @@ static inline void strbuf_shift_head(StrSeqBuf_t* buf) { buf->head = (buf->head 
 /* Public */
 inline void strbuf_init(StrSeqBuf_t* buf) { buf->mux = xSemaphoreCreateMutex(); }
 
-inline uint32_t strbuf_get_available_slots(StrSeqBuf_t* buf) { return (buf->end + buf->size - buf->head) % buf->size; }
+inline uint32_t strbug_get_unread_slots(StrSeqBuf_t* buf) { return (buf->end + buf->size - buf->head) % buf->size; }
+inline uint32_t strbuf_get_available_slots(StrSeqBuf_t* buf) { return buf->size - strbug_get_unread_slots(buf); }
+inline bool strbuf_is_empty(StrSeqBuf_t* buf) { return buf->head == buf->end; }
 
 void strbuf_write_nolock(StrSeqBuf_t* buf, const char* wr_buf, const size_t len) {
+	if (len > strbuf_get_available_slots(buf)) {
+		return; // buffer full
+	}
 	if (buf->end + len > buf->size) {
 		const size_t len1 = buf->size - buf->end;
 		memcpy(&buf->buf[buf->end], wr_buf, len1);
@@ -27,8 +32,6 @@ void strbuf_write(StrSeqBuf_t* buf, const char* wr_buf, const size_t len) {
 	strbuf_write_nolock(buf, wr_buf, len);
 	xSemaphoreGive(buf->mux);
 }
-
-inline bool strbuf_is_empty(StrSeqBuf_t* buf) { return buf->head == buf->end; }
 
 void strbuf_read_once_nolock(StrSeqBuf_t* buf, char* out_buf, const size_t max_len) {
 	int i = 0;

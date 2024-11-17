@@ -22,10 +22,6 @@ void debug_print(const esp_log_level_t level, const char* format, ...) {
 
 	const size_t len = strlen(print_buf) + 1; // include null terminator
 
-	if (len > strbuf_get_available_slots(&debug_buf)) { // buffer full
-		return;
-	}
-
 	strbuf_write(&debug_buf, print_buf, len);
 
 	extern RtosStaticTask_t debug_task;
