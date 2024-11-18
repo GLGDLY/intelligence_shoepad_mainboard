@@ -11,10 +11,10 @@
 #include "spi_app.h"
 
 
-RtosDefineTask(spi_app_task, spi_app_thread);
+RtosDefineTaskSized(spi_app_task, spi_app_thread, 2048);
 
 #ifdef DEBUG
-RtosDefineTaskSized(debug_task, debug_thread, 4096);
+RtosDefineTaskSized(debug_task, debug_thread,4096);
 #endif
 
 void app_main(void) {
