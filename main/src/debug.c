@@ -20,9 +20,7 @@ void debug_print(const esp_log_level_t level, const char* format, ...) {
 	print_buf[0] = level;
 	vsnprintf(print_buf + 1, DEBUG_BUF_SIZE - 1, format, args);
 
-	const size_t len = strlen(print_buf) + 1; // include null terminator
-
-	strbuf_write(&debug_buf, print_buf, len);
+	strbuf_write(&debug_buf, print_buf);
 
 	extern RtosStaticTask_t debug_task;
 	if (debug_task.handle != NULL && eTaskGetState(debug_task.handle) == eBlocked) {

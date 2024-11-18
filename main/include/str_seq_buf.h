@@ -10,7 +10,7 @@ typedef struct {
 	uint32_t head;
 	uint32_t end;
 	uint32_t size;
-	SemaphoreHandle_t mux;
+	SemaphoreHandle_t sem;
 } StrSeqBuf_t;
 
 typedef void (*StrSeqBufAction_t)(const char* str);
@@ -22,11 +22,11 @@ typedef void (*StrSeqBufAction_t)(const char* str);
 uint32_t strbug_get_unread_slots(StrSeqBuf_t* buf);
 uint32_t strbuf_get_available_slots(StrSeqBuf_t* buf);
 bool strbuf_is_empty(StrSeqBuf_t* buf);
+uint32_t strbuf_get_items_count(StrSeqBuf_t* buf);
 
-void strbuf_write_nolock(StrSeqBuf_t* buf, const char* wr_buf, const size_t len);
-void strbuf_write(StrSeqBuf_t* buf, const char* wr_buf, const size_t len);
+void strbuf_write(StrSeqBuf_t* buf, const char* wr_buf);
 
-void strbuf_read_once_nolock(StrSeqBuf_t* buf, char* out_buf, const size_t max_len);
+void strbuf_read(StrSeqBuf_t* buf, char* out_buf, const size_t max_len);
 void strbuf_read_all_with_action(StrSeqBuf_t* buf, StrSeqBufAction_t action, const size_t max_len);
 
 #endif // _STR_SEQ_BUF_H_
