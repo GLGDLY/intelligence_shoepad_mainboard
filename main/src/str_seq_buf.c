@@ -34,7 +34,6 @@ void strbuf_write_nolock(StrSeqBuf_t* buf, const char* wr_buf, const size_t len)
 void strbuf_write(StrSeqBuf_t* buf, const char* wr_buf, const size_t len) {
 	strbuf_check_init(buf);
 	xSemaphoreTake(buf->mux, portMAX_DELAY);
-	xQueueSemaphoreTake((buf->mux), ((TickType_t)0xffffffffUL));
 	strbuf_write_nolock(buf, wr_buf, len);
 	xSemaphoreGive(buf->mux);
 }
