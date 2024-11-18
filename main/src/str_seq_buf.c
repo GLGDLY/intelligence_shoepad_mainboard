@@ -3,11 +3,15 @@
 #include <string.h>
 
 /* Private */
+static inline void strbuf_init(StrSeqBuf_t* buf) { buf->mux = xSemaphoreCreateMutex(); }
+static inline void strbuf_check_init(StrSeqBuf_t* buf) {
+	if (buf->mux == NULL) {
+		strbuf_init(buf);
+	}
+}
 static inline void strbuf_shift_head(StrSeqBuf_t* buf) { buf->head = (buf->head + 1) % buf->size; }
 
 /* Public */
-inline void strbuf_init(StrSeqBuf_t* buf) { buf->mux = xSemaphoreCreateMutex(); }
-
 inline uint32_t strbug_get_unread_slots(StrSeqBuf_t* buf) { return (buf->end + buf->size - buf->head) % buf->size; }
 inline uint32_t strbuf_get_available_slots(StrSeqBuf_t* buf) { return buf->size - strbug_get_unread_slots(buf); }
 inline bool strbuf_is_empty(StrSeqBuf_t* buf) { return buf->head == buf->end; }
@@ -28,7 +32,9 @@ void strbuf_write_nolock(StrSeqBuf_t* buf, const char* wr_buf, const size_t len)
 }
 
 void strbuf_write(StrSeqBuf_t* buf, const char* wr_buf, const size_t len) {
+	strbuf_check_init(buf);
 	xSemaphoreTake(buf->mux, portMAX_DELAY);
+	xQueueSemaphoreTake((buf->mux), ((TickType_t)0xffffffffUL));
 	strbuf_write_nolock(buf, wr_buf, len);
 	xSemaphoreGive(buf->mux);
 }
@@ -47,6 +53,7 @@ void strbuf_read_all_with_action(StrSeqBuf_t* buf, StrSeqBufAction_t action, con
 	if (action == NULL || strbuf_is_empty(buf)) {
 		return;
 	}
+	strbuf_check_init(buf);
 	xSemaphoreTake(buf->mux, portMAX_DELAY);
 	while (!strbuf_is_empty(buf)) {
 		char tmp_buf[max_len];

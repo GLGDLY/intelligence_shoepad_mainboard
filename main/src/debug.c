@@ -32,16 +32,12 @@ void debug_print(const esp_log_level_t level, const char* format, ...) {
 	va_end(args);
 }
 
-void debug_init() { strbuf_init(&debug_buf); }
-
 static void debug_output_action(const char* str) {
 	const esp_log_level_t level = str[0];
 	ESP_LOG_LEVEL_LOCAL(level, TAG, "%s", str + 1);
 }
 
 void debug_thread(void* par) {
-	debug_init();
-
 	while (1) {
 		ulTaskNotifyTake(pdTRUE, ms_to_ticks(1000));
 		ESP_LOGI(TAG, "Debug thread running");
