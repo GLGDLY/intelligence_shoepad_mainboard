@@ -18,6 +18,8 @@
 #define WIFI_MODE WIFI_AUTH_WPA2_PSK
 
 #define DEBUG
+#define DEBUG_BUF_SIZE			 256
+#define DEBUG_PRINT_MAX_LEN		 80
 #define DEBUG_SPI_PRINT_INTVL_MS 1000
 
 // Network
@@ -78,13 +80,5 @@ typedef enum {
 	NUM_OF_GPIO_LEVEL,
 } GPIO_LEVEL;
 
-
-/* Internal */
-#ifndef DEBUG
-	#ifdef ESP_LOG_LEVEL_LOCAL
-		#undef ESP_LOG_LEVEL_LOCAL
-	#endif
-	#define ESP_LOG_LEVEL_LOCAL(level, tag, format, ...)
-#endif // DEBUG
 
 #endif // _CONFIG_H

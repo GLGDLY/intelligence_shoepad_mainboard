@@ -1,6 +1,7 @@
 #include "spi_app.h"
 
 #include "MLX90393_cmds.h"
+#include "debug.h"
 #include "esp_log.h"
 #include "freertos/projdefs.h"
 #include "globals.h"
@@ -11,7 +12,6 @@
 
 #include <driver/spi_master.h>
 #include <sdkconfig.h>
-#include <stdint.h>
 
 
 /* Globals */
@@ -29,7 +29,7 @@ const uint32_t bitfield_all_spi_dev_ready = (1 << NUM_OF_SPI_DEV) - 1;
 void spi_app_init(void) {
 	spi_mux = xSemaphoreCreateMutex();
 
-	ESP_LOGI(TAG, "Initializing bus SPI%d...", SPI_HOST_ID + 1);
+	LOGI("Initializing bus SPI%d...", SPI_HOST_ID + 1);
 
 	spi_bus_config_t buscfg = {
 		.miso_io_num = SPI_PIN_MISO, // MISO
@@ -57,14 +57,14 @@ void spi_app_init(void) {
 	spi_cs_init();
 	spi_drdy_init();
 	spi_sync_init();
-	ESP_LOGI(TAG, "SPI init success");
+	LOGI("SPI init success");
 }
 
 void spi_tx_request(spi_cmd_t* cmd) {
 	if (cmd->len <= 0)
 		return;
 
-	// ESP_LOGI(TAG, "id: %d, tx0: %x", cmd->dev_id, cmd->tx_data[0]);
+	// LOGI("id: %d, tx0: %x", cmd->dev_id, cmd->tx_data[0]);
 
 	xSemaphoreTake(spi_mux, portMAX_DELAY);
 
@@ -99,7 +99,7 @@ extern RtosStaticTask_t spi_app_task;
 // }
 
 void spi_sync_falling_edge_handler(void* arg) {
-	// ESP_LOGI(TAG, "Sync signal detected on timer: %d", mcpwm);
+	// LOGI("Sync signal detected on timer: %d", mcpwm);
 	if (spi_app_task.handle != NULL && eTaskGetState(spi_app_task.handle) == eBlocked) {
 		vTaskNotifyGiveFromISR(spi_app_task.handle, NULL);
 	}
@@ -149,9 +149,9 @@ void spi_post_init(void) {
 			mlx90393_status_t status;
 			status = mlx90393_RT_request(i);
 			if (mlx90393_RM_data_is_valid(status)) {
-				ESP_LOGI(TAG, "Reset SPI dev: %d success: %x", i, status.raw);
+				LOGI("Reset SPI dev: %d success: %x", i, status.raw);
 			} else {
-				ESP_LOGE(TAG, "Reset SPI dev: %d failed: %x", i, status.raw);
+				LOGE("Reset SPI dev: %d failed: %x", i, status.raw);
 				goto retry;
 			}
 
@@ -185,9 +185,9 @@ void spi_post_init(void) {
 
 			status = mlx90393_SM_request(i);
 			if (mlx90393_assert_SM_mode(status)) {
-				ESP_LOGI(TAG, "Init SPI dev: %d success: %x", i, status.raw);
+				LOGI("Init SPI dev: %d success: %x", i, status.raw);
 			} else {
-				ESP_LOGE(TAG, "Init SPI dev: %d failed: %x", i, status.raw);
+				LOGE("Init SPI dev: %d failed: %x", i, status.raw);
 				goto retry;
 			}
 
@@ -232,10 +232,10 @@ void spi_app_thread(void* par) {
 #ifdef DEBUG
 		if (xTaskGetTickCount() - last_ticks >= DEBUG_SPI_PRINT_INTVL_MS) {
 			FOR_EACH_SPI_DEV(i) {
-				ESP_LOGI(TAG, "Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
-						 mlx90393_data[i].Y, mlx90393_data[i].Z);
+				LOGI("Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
+					 mlx90393_data[i].Y, mlx90393_data[i].Z);
 			}
-			ESP_LOGI(TAG, "--------------------------------------------");
+			LOGI("--------------------------------------------");
 			last_ticks = xTaskGetTickCount();
 		}
 #endif

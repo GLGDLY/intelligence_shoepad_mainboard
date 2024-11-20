@@ -41,6 +41,12 @@
 			xTaskCreateStatic(task.func, task.name, task.stack_size, (void*)par, prio, task.stack_buffer, &task.tb); \
 	} while (0)
 
+#define RtosStaticTaskCreateToCore(task, prio, par, core)                                                    \
+	do {                                                                                                     \
+		task.handle = xTaskCreateStaticPinnedToCore(task.func, task.name, task.stack_size, (void*)par, prio, \
+													task.stack_buffer, &task.tb, core);                      \
+	} while (0)
+
 #define ms_to_ticks(ms) (ms / portTICK_PERIOD_MS)
 
 #define delay(ms)		   vTaskDelay(ms_to_ticks(ms))
