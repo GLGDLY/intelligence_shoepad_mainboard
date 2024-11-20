@@ -13,7 +13,8 @@
 #define TAG "mainboard"
 
 #define DEBUG
-#define DEBUG_BUF_SIZE 256
+#define DEBUG_BUF_SIZE		256
+#define DEBUG_PRINT_MAX_LEN 80
 
 // SPI
 #define SPI_SYNC_ALARM_US			  100

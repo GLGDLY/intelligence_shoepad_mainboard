@@ -11,7 +11,7 @@
 
 DEFINE_STR_SEQ_BUF(debug_buf, DEBUG_BUF_SIZE);
 
-static char print_buf[80] = {0};
+static char print_buf[DEBUG_PRINT_MAX_LEN] = {0};
 
 void debug_print(const esp_log_level_t level, const char* format, ...) {
 	va_list args;
@@ -40,7 +40,7 @@ void debug_thread(void* par) {
 		ulTaskNotifyTake(pdTRUE, ms_to_ticks(1000));
 		// ESP_LOGI(TAG, "Debug thread running");
 		// ESP_LOGI(TAG, "Available slots: %d", (int)strbuf_get_available_slots(&debug_buf));
-		strbuf_read_all_with_action(&debug_buf, debug_output_action, 80);
+		strbuf_read_all_with_action(&debug_buf, debug_output_action, DEBUG_PRINT_MAX_LEN);
 	}
 }
 
