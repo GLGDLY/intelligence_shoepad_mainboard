@@ -17,6 +17,7 @@ typedef struct {
 /* Function prototypes */
 void spi_app_init(void);
 void spi_app_thread(void* par);
+void spi_app_publish_thread(void* par);
 
 void spi_tx_request(spi_cmd_t* cmd);
 

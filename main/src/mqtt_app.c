@@ -1,5 +1,6 @@
 #include "mqtt_app.h"
 
+#include "debug.h"
 #include "globals.h"
 #include "mqtt_utils.h"
 #include "os.h"
@@ -18,8 +19,7 @@ esp_mqtt_status_t mqtt_status = STATUS_OFFLINE;
 static const char app_topics[] = "app/#";
 
 static char esp_id[6 * 2 + 1] = {0};
-static char status_topic[sizeof(esp_id) + 4 + 7] = {0};
-
+static char status_topic[sizeof(esp_id) + 4 + 7] = {0}; // sizeof(esp_id) already include space for /0
 void esp_id_init(void) {
 	uint8_t mac[6];
 	esp_read_mac(mac, ESP_MAC_WIFI_STA);
@@ -32,27 +32,26 @@ void mqtt_publish_sensor_data(const uint8_t sensor_id, const char* data) {
 	if (mqtt_status != STATUS_ONLINE) {
 		return;
 	}
-	char topic[32] = {0};
-	sprintf(topic, "esp/%s/d%d", esp_id, sensor_id);
-	esp_mqtt_client_publish(client, topic, data, strlen(data), 1, 0);
-	// TODO: local buffering
+	char data_topic[sizeof(esp_id) + 4 + 2 + 3] = {0};
+	sprintf(data_topic, "esp/%s/d%d", esp_id, sensor_id);
+	esp_mqtt_client_publish(client, data_topic, data, strlen(data), 1, 0);
 }
 
 static void mqtt_connection_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id,
 										  void* event_data) {
 	switch (event_id) {
 		case MQTT_EVENT_CONNECTED: {
-			ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+			LOGI("MQTT_EVENT_CONNECTED");
 			mqtt_status = STATUS_ONLINE;
 			esp_mqtt_client_subscribe(client, app_topics, 2);
 		} break;
 		case MQTT_EVENT_DISCONNECTED: {
-			ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+			LOGI("MQTT_EVENT_DISCONNECTED");
 			mqtt_status = STATUS_OFFLINE;
 			esp_mqtt_client_reconnect(client);
 		} break;
 		case MQTT_EVENT_ERROR: {
-			ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+			LOGI("MQTT_EVENT_ERROR");
 			mqtt_status = STATUS_OFFLINE;
 			esp_mqtt_client_reconnect(client);
 		} break;
@@ -62,14 +61,14 @@ static void mqtt_connection_event_handler(void* handler_args, esp_event_base_t b
 
 static void mqtt_topic_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data) {
 	// esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
-	// ESP_LOGI(TAG, "TOPIC: %.*s", event->topic_len, event->topic);
-	// ESP_LOGI(TAG, "DATA: %.*s", event->data_len, event->data);
+	// LOGI("TOPIC: %.*s", event->topic_len, event->topic);
+	// LOGI("DATA: %.*s", event->data_len, event->data);
 }
 
 static void mqtt_data_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data) {
 	esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
-	ESP_LOGI(TAG, "TOPIC: %.*s", event->topic_len, event->topic);
-	ESP_LOGI(TAG, "DATA: %.*s", event->data_len, event->data);
+	LOGI("TOPIC: %.*s", event->topic_len, event->topic);
+	LOGI("DATA: %.*s", event->data_len, event->data);
 }
 
 static void mqtt_event_handler(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id,
@@ -95,14 +94,6 @@ static void mqtt_event_handler(void* event_handler_arg, esp_event_base_t event_b
 
 
 void mqtt5_app_start(void) {
-	esp_log_level_set("*", ESP_LOG_INFO);
-	esp_log_level_set("mqtt_client", ESP_LOG_VERBOSE);
-	esp_log_level_set("mqtt_example", ESP_LOG_VERBOSE);
-	esp_log_level_set("transport_base", ESP_LOG_VERBOSE);
-	esp_log_level_set("esp-tls", ESP_LOG_VERBOSE);
-	esp_log_level_set("transport", ESP_LOG_VERBOSE);
-	esp_log_level_set("outbox", ESP_LOG_VERBOSE);
-
 	esp_id_init();
 
 	connect_to_wifi();
@@ -113,7 +104,7 @@ void mqtt5_app_start(void) {
 	}
 	char broker_url[16 + 7 + 5] = {0};
 	sprintf(broker_url, "mqtt://%s:1883", broker_ip);
-	ESP_LOGI(TAG, "Connecting to mqtt broker: %s", broker_url);
+	LOGI("Connecting to mqtt broker: %s", broker_url);
 
 	const char will_msg[] = {STATUS_OFFLINE + '0', '\0'};
 	esp_mqtt_client_config_t mqtt5_cfg = {

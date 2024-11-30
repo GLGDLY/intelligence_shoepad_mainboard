@@ -109,9 +109,9 @@ bool spi_write_reg_with_assert(uint8_t dev_id, uint8_t reg, uint8_t* reg_data) {
 	mlx90393_status_t status;
 	status = mlx90393_WR_request(dev_id, reg, reg_data);
 	if (mlx90393_RM_data_is_valid(status)) {
-		ESP_LOGI(TAG, "Write reg: 0x%02x, Data: 0x%02x%02x", reg, reg_data[0], reg_data[1]);
+		LOGI("Write reg: 0x%02x, Data: 0x%02x%02x", reg, reg_data[0], reg_data[1]);
 	} else {
-		ESP_LOGE(TAG, "Failed to write reg 0x%02x: %x", reg, status.raw);
+		LOGE("Failed to write reg 0x%02x: %x", reg, status.raw);
 		return false;
 	}
 
@@ -120,14 +120,14 @@ bool spi_write_reg_with_assert(uint8_t dev_id, uint8_t reg, uint8_t* reg_data) {
 	mlx90393_reg_data_t reg_ret = mlx90393_RR_request(dev_id, reg);
 	if (mlx90393_RM_data_is_valid(reg_ret.status)) {
 		if (reg_ret.data[0] == reg_data[0] && reg_ret.data[1] == reg_data[1]) {
-			ESP_LOGI(TAG, "Read reg: 0x%02x, Data: 0x%02x%02x", reg, reg_ret.data[0], reg_ret.data[1]);
+			LOGI("Read reg: 0x%02x, Data: 0x%02x%02x", reg, reg_ret.data[0], reg_ret.data[1]);
 		} else {
-			ESP_LOGE(TAG, "Read assert failed: 0x%02x%02x != 0x%02x%02x", reg_ret.data[0], reg_ret.data[1], reg_data[0],
-					 reg_data[1]);
+			LOGE("Read assert failed: 0x%02x%02x != 0x%02x%02x", reg_ret.data[0], reg_ret.data[1], reg_data[0],
+				 reg_data[1]);
 			return false;
 		}
 	} else {
-		ESP_LOGE(TAG, "Failed to read reg 0x%02x: %x", reg, reg_ret.status.raw);
+		LOGE("Failed to read reg 0x%02x: %x", reg, reg_ret.status.raw);
 		return false;
 	}
 	return true;
@@ -212,7 +212,7 @@ void spi_app_thread(void* par) {
 	delay(100);
 
 #ifdef DEBUG
-	uint32_t last_ticks = xTaskGetTickCount();
+	uint32_t debug_last_ticks = xTaskGetTickCount();
 #endif
 
 	while (1) {
@@ -230,16 +230,29 @@ void spi_app_thread(void* par) {
 		}
 
 #ifdef DEBUG
-		if (xTaskGetTickCount() - last_ticks >= DEBUG_SPI_PRINT_INTVL_MS) {
+	#ifdef DEBUG_ENABLE_SPI_PRINT_DATA
+		if (xTaskGetTickCount() - debug_last_ticks >= DEBUG_SPI_PRINT_INTVL_MS) {
 			FOR_EACH_SPI_DEV(i) {
 				LOGI("Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
 					 mlx90393_data[i].Y, mlx90393_data[i].Z);
 			}
 			LOGI("--------------------------------------------");
-			last_ticks = xTaskGetTickCount();
+			debug_last_ticks = xTaskGetTickCount();
 		}
+	#endif
 #endif
 
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+	}
+}
+
+void spi_app_publish_thread(void* par) {
+	char buf[128] = {0};
+	while (1) {
+		delay(ms_to_ticks(1000 / DATA_PUBLISH_HZ));
+		FOR_EACH_SPI_DEV(i) {
+			sprintf(buf, "%d,%d,%d,%d", mlx90393_data[i].T, mlx90393_data[i].X, mlx90393_data[i].Y, mlx90393_data[i].Z);
+			mqtt_publish_sensor_data(i, buf);
+		}
 	}
 }

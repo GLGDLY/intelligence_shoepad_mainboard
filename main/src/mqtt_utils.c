@@ -1,5 +1,6 @@
 #include "mqtt_utils.h"
 
+#include "debug.h"
 #include "globals.h"
 #include "os.h"
 
@@ -9,6 +10,7 @@
 #include <esp_wifi.h>
 #include <lwip/sockets.h>
 #include <nvs_flash.h>
+
 
 bool is_wifi_connected = false;
 
@@ -20,11 +22,11 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 				esp_wifi_connect();
 			} break;
 			case WIFI_EVENT_STA_CONNECTED: {
-				ESP_LOGI(TAG, "connected to AP");
+				LOGI("connected to AP");
 			} break;
 			case WIFI_EVENT_STA_DISCONNECTED: {
 				esp_wifi_connect();
-				ESP_LOGI(TAG, "connect to the AP fail,retry now");
+				LOGI("connect to the AP fail,retry now");
 			} break;
 			default: break;
 		}
@@ -32,7 +34,7 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 	if (event_base == IP_EVENT) {
 		switch (event_id) {
 			case IP_EVENT_STA_GOT_IP: {
-				ESP_LOGI(TAG, "get ip address");
+				LOGI("get ip address");
 				is_wifi_connected = true;
 			} break;
 			default: break;
@@ -74,9 +76,9 @@ void connect_to_wifi(void) {
 
 	while (!is_wifi_connected) {
 		delay(ms_to_ticks(NET_RETRY_INTERVAL_MS));
-		ESP_LOGI(TAG, "Connecting to WiFi...");
+		LOGI("Connecting to WiFi...");
 	}
-	ESP_LOGI(TAG, "Connected to WiFi");
+	LOGI("Connected to WiFi");
 }
 
 
@@ -92,13 +94,13 @@ bool find_mqtt_ip(char* ip) {
 
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0) {
-		ESP_LOGE(TAG, "Failed to create socket");
+		LOGE("Failed to create socket");
 		return false;
 	}
 
 	int broadcast = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast)) < 0) {
-		ESP_LOGE(TAG, "Failed to set socket option");
+		LOGE("Failed to set socket option");
 		closesocket(sock);
 		return false;
 	}
@@ -106,7 +108,7 @@ bool find_mqtt_ip(char* ip) {
 	if (sendto(sock, connection_search, sizeof(connection_search), 0, (struct sockaddr*)&broadcast_addr,
 			   sizeof(broadcast_addr))
 		< 0) {
-		ESP_LOGE(TAG, "Failed to send broadcast");
+		LOGE("Failed to send broadcast");
 		closesocket(sock);
 		return false;
 	}
@@ -116,18 +118,18 @@ bool find_mqtt_ip(char* ip) {
 	char buf[64];
 	int len = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*)&from, &fromlen);
 	if (len < 0) {
-		ESP_LOGE(TAG, "Failed to receive broadcast");
+		LOGE("Failed to receive broadcast");
 		closesocket(sock);
 		return false;
 	}
 
 	if (strncmp(buf, connection_found, sizeof(connection_found)) == 0) {
 		strcpy(ip, inet_ntoa(from.sin_addr));
-		ESP_LOGI(TAG, "Found MQTT broker at %s", ip);
+		LOGI("Found MQTT broker at %s", ip);
 		closesocket(sock);
 		return true;
 	} else {
-		ESP_LOGE(TAG, "Invalid response from MQTT broker");
+		LOGE("Invalid response from MQTT broker");
 		closesocket(sock);
 		return false;
 	}

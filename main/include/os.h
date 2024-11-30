@@ -47,7 +47,7 @@
 													task.stack_buffer, &task.tb, core);                      \
 	} while (0)
 
-#define ms_to_ticks(ms) (ms / portTICK_PERIOD_MS)
+#define ms_to_ticks(ms) ((ms) / portTICK_PERIOD_MS)
 
 #define delay(ms)		   vTaskDelay(ms_to_ticks(ms))
 #define delay_until(t, ms) vTaskDelayUntil(t, ms_to_ticks(ms))

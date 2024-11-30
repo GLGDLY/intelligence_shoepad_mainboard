@@ -17,13 +17,19 @@
 #define WIFI_PWD  "password"
 #define WIFI_MODE WIFI_AUTH_WPA2_PSK
 
+#define DATA_PUBLISH_HZ 300
+
+// Debug
 #define DEBUG
-#define DEBUG_BUF_SIZE			 256
-#define DEBUG_PRINT_MAX_LEN		 80
+#define DEBUG_BUF_SIZE		512
+#define DEBUG_PRINT_MAX_LEN 80
+
+// #define DEBUG_ENABLE_SPI_PRINT_DATA
 #define DEBUG_SPI_PRINT_INTVL_MS 1000
 
 // Network
 #define NET_RETRY_INTERVAL_MS 3000
+#define MQTT_BUF_SIZE		  512
 
 // SPI
 #define SPI_SYNC_ALARM_US			  100
