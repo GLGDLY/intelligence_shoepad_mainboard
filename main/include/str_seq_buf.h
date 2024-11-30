@@ -15,8 +15,8 @@ typedef struct {
 
 typedef void (*StrSeqBufAction_t)(const char* str);
 
-#define DEFINE_STR_SEQ_BUF(name, size) \
-	char name##_buf[size] = {0};       \
+#define DEFINE_STR_SEQ_BUF(name, size)                   \
+	EXT_RAM_BSS_ATTR static char name##_buf[size] = {0}; \
 	StrSeqBuf_t name = {name##_buf, 0, 0, size, NULL}
 
 uint32_t strbug_get_unread_slots(StrSeqBuf_t* buf);
