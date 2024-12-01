@@ -21,7 +21,21 @@ SemaphoreHandle_t spi_mux = NULL;
 uint32_t dev_ready = 0;
 portMUX_TYPE dev_ready_lock = portMUX_INITIALIZER_UNLOCKED;
 
-mlx90393_data_t mlx90393_data[NUM_OF_SPI_DEV] = {0};
+volatile mlx90393_data_t mlx90393_data[NUM_OF_SPI_DEV] = {0};
+SemaphoreHandle_t mlx90393_data_mux = NULL;
+static void mlx90393_data_init(void) { mlx90393_data_mux = xSemaphoreCreateMutex(); }
+static void mlx90393_data_lock(void) {
+	if (mlx90393_data_mux == NULL) {
+		mlx90393_data_init();
+	}
+	xSemaphoreTake(mlx90393_data_mux, portMAX_DELAY);
+}
+static void mlx90393_data_unlock(void) {
+	if (mlx90393_data_mux == NULL) {
+		mlx90393_data_init();
+	}
+	xSemaphoreGive(mlx90393_data_mux);
+}
 
 const uint32_t bitfield_all_spi_dev_ready = (1 << NUM_OF_SPI_DEV) - 1;
 
@@ -220,7 +234,10 @@ void spi_app_thread(void* par) {
 		if (drdy) {
 			FOR_EACH_SPI_DEV(i) {
 				if (drdy & (1 << i)) {
-					mlx90393_data[i] = mlx90393_RM_request(i);
+					mlx90393_data_t d = mlx90393_RM_request(i);
+					mlx90393_data_lock();
+					mlx90393_data[i] = d;
+					mlx90393_data_unlock();
 					dev_ready &= ~(1 << i); // clear bit
 				}
 				// else {
@@ -233,8 +250,10 @@ void spi_app_thread(void* par) {
 	#ifdef DEBUG_ENABLE_SPI_PRINT_DATA
 		if (xTaskGetTickCount() - debug_last_ticks >= DEBUG_SPI_PRINT_INTVL_MS) {
 			FOR_EACH_SPI_DEV(i) {
-				LOGI("Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, mlx90393_data[i].T, mlx90393_data[i].X,
-					 mlx90393_data[i].Y, mlx90393_data[i].Z);
+				mlx90393_data_lock();
+				mlx90393_data_t d = mlx90393_data[i];
+				mlx90393_data_unlock();
+				LOGI("Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, d.T, d.X, d.Y, d.Z);
 			}
 			LOGI("--------------------------------------------");
 			debug_last_ticks = xTaskGetTickCount();
@@ -251,7 +270,10 @@ void spi_app_publish_thread(void* par) {
 	while (1) {
 		delay(ms_to_ticks(1000 / DATA_PUBLISH_HZ));
 		FOR_EACH_SPI_DEV(i) {
-			sprintf(buf, "%d,%d,%d,%d", mlx90393_data[i].T, mlx90393_data[i].X, mlx90393_data[i].Y, mlx90393_data[i].Z);
+			mlx90393_data_lock();
+			mlx90393_data_t d = mlx90393_data[i];
+			mlx90393_data_unlock();
+			sprintf(buf, "%d,%d,%d,%d", d.T, d.X, d.Y, d.Z);
 			mqtt_publish_sensor_data(i, buf);
 		}
 	}

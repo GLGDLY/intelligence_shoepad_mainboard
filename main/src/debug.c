@@ -11,7 +11,7 @@
 
 DEFINE_STR_SEQ_BUF(debug_buf, DEBUG_BUF_SIZE);
 
-EXT_RAM_BSS_ATTR static char print_buf[DEBUG_PRINT_MAX_LEN] = {0};
+static char print_buf[DEBUG_PRINT_MAX_LEN] = {0};
 
 void debug_print(const esp_log_level_t level, const char* format, ...) {
 	va_list args;

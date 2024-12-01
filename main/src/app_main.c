@@ -11,7 +11,7 @@
 #include "spi_app.h"
 
 #ifdef DEBUG
-EXT_RAM_BSS_ATTR RtosDefineTaskSized(debug_task, debug_thread, 4096);
+RtosDefineTaskSized(debug_task, debug_thread, 4096);
 #endif
 RtosDefineTaskSized(spi_app_task, spi_app_thread, 2048);
 RtosDefineTaskSized(spi_app_publish_task, spi_app_publish_thread, 2048);
