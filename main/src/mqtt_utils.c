@@ -8,9 +8,8 @@
 #include <esp_netif.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
-#include <lwip/sockets.h>
 #include <nvs_flash.h>
-
+#include <socket.h>
 
 bool is_wifi_connected = false;
 
@@ -86,11 +85,14 @@ const char connection_search[] = "search";
 const char connection_found[] = "found";
 
 bool find_mqtt_ip(char* ip) {
+	LOGI("Searching for MQTT broker");
 	// broadcast to port 1884
 	struct sockaddr_in broadcast_addr;
 	broadcast_addr.sin_family = AF_INET;
 	broadcast_addr.sin_port = htons(1884);
 	broadcast_addr.sin_addr.s_addr = INADDR_BROADCAST;
+
+	LOGI("Creating socket");
 
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0) {
@@ -98,12 +100,24 @@ bool find_mqtt_ip(char* ip) {
 		return false;
 	}
 
+	LOGI("Setting socket option");
+
 	int broadcast = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast)) < 0) {
 		LOGE("Failed to set socket option");
 		closesocket(sock);
 		return false;
 	}
+	struct timeval tv = {0};
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+	if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+		LOGE("Failed to set socket option");
+		closesocket(sock);
+		return false;
+	}
+
+	LOGI("Sending broadcast");
 
 	if (sendto(sock, connection_search, sizeof(connection_search), 0, (struct sockaddr*)&broadcast_addr,
 			   sizeof(broadcast_addr))
@@ -112,6 +126,8 @@ bool find_mqtt_ip(char* ip) {
 		closesocket(sock);
 		return false;
 	}
+
+	LOGI("Waiting for response");
 
 	struct sockaddr_in from;
 	socklen_t fromlen = sizeof(from);

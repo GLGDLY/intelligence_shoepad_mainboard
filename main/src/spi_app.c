@@ -273,7 +273,7 @@ void spi_app_publish_thread(void* par) {
 			mlx90393_data_lock();
 			mlx90393_data_t d = mlx90393_data[i];
 			mlx90393_data_unlock();
-			sprintf(buf, "%d,%d,%d,%d", d.T, d.X, d.Y, d.Z);
+			sprintf(buf, "%d,%d,%d,%d", (int)(d.T), (int)(d.X), (int)(d.Y), (int)(d.Z));
 			mqtt_publish_sensor_data(i, buf);
 		}
 	}
