@@ -119,7 +119,7 @@ bool find_mqtt_ip(char* ip) {
 
 	LOGI("Sending broadcast");
 
-	if (sendto(sock, connection_search, sizeof(connection_search), 0, (struct sockaddr*)&broadcast_addr,
+	if (sendto(sock, connection_search, strlen(connection_search), 0, (struct sockaddr*)&broadcast_addr,
 			   sizeof(broadcast_addr))
 		< 0) {
 		LOGE("Failed to send broadcast");
@@ -139,7 +139,7 @@ bool find_mqtt_ip(char* ip) {
 		return false;
 	}
 
-	if (strncmp(buf, connection_found, sizeof(connection_found)) == 0) {
+	if (strncmp(buf, connection_found, strlen(connection_found)) == 0) {
 		strcpy(ip, inet_ntoa(from.sin_addr));
 		LOGI("Found MQTT broker at %s", ip);
 		closesocket(sock);
