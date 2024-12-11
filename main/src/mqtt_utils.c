@@ -105,16 +105,14 @@ bool find_mqtt_ip(char* ip) {
 	int broadcast = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast)) < 0) {
 		LOGE("Failed to set socket option");
-		closesocket(sock);
-		return false;
+		goto fail_return;
 	}
 	struct timeval tv = {0};
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
 		LOGE("Failed to set socket option");
-		closesocket(sock);
-		return false;
+		goto fail_return;
 	}
 
 	LOGI("Sending broadcast");
@@ -123,8 +121,7 @@ bool find_mqtt_ip(char* ip) {
 			   sizeof(broadcast_addr))
 		< 0) {
 		LOGE("Failed to send broadcast");
-		closesocket(sock);
-		return false;
+		goto fail_return;
 	}
 
 	LOGI("Waiting for response");
@@ -134,9 +131,8 @@ bool find_mqtt_ip(char* ip) {
 	char buf[64];
 	int len = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*)&from, &fromlen);
 	if (len < 0) {
-		LOGE("Failed to receive broadcast");
-		closesocket(sock);
-		return false;
+		LOGE("Failed to receive broadcast, possibly timeouted");
+		goto fail_return;
 	}
 
 	if (strncmp(buf, connection_found, strlen(connection_found)) == 0) {
@@ -146,7 +142,9 @@ bool find_mqtt_ip(char* ip) {
 		return true;
 	} else {
 		LOGE("Invalid response from MQTT broker");
-		closesocket(sock);
-		return false;
+		goto fail_return;
 	}
+fail_return:
+	closesocket(sock);
+	return false;
 }
