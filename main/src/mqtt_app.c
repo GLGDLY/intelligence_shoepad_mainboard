@@ -35,6 +35,7 @@ void mqtt_publish_sensor_data(const uint8_t sensor_id, const char* data) {
 	}
 	char data_topic[sizeof(esp_id) + 4 + 3 + 3] = {0};
 	sprintf(data_topic, "esp/%s/d/%d", esp_id, sensor_id);
+	LOGI("Publishing data to %s: %s", data_topic, data);
 	esp_mqtt_client_publish(client, data_topic, data, strlen(data), 1, 0);
 }
 
@@ -71,8 +72,8 @@ static void mqtt_topic_event_handler(void* handler_args, esp_event_base_t base, 
 
 static void mqtt_data_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data) {
 	esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
-	LOGI("TOPIC: %.*s", event->topic_len, event->topic);
-	LOGI("DATA: %.*s", event->data_len, event->data);
+	LOGI("TOPIC(%d): %.*s", event->topic_len, event->topic_len, event->topic);
+	LOGI("DATA(%d): %.*s", event->data_len, event->data_len, event->data);
 }
 
 static void mqtt_event_handler(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id,
