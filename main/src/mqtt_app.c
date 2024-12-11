@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "mqtt_utils.h"
 #include "os.h"
+#include "portmacro.h"
 
 #include <esp_event.h>
 #include <esp_mac.h>
@@ -103,7 +104,9 @@ void mqtt5_app_start(void) {
 
 	char broker_ip[16] = {0};
 	while (!find_mqtt_ip(broker_ip)) {
-		delay(ms_to_ticks(NET_RETRY_INTERVAL_MS));
+		const TickType_t find_ip_delay = ms_to_ticks(NET_RETRY_INTERVAL_MS);
+		static_assert(find_ip_delay > 0, "Invalid NET_RETRY_INTERVAL_MS");
+		delay(find_ip_delay);
 	}
 	char broker_url[16 + 7 + 5] = {0};
 	sprintf(broker_url, "mqtt://%s:1883", broker_ip);

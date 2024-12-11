@@ -10,6 +10,7 @@
 #include "portmacro.h"
 #include "spi_gpio_helper.h"
 
+#include <assert.h>
 #include <driver/spi_master.h>
 #include <sdkconfig.h>
 
@@ -268,7 +269,10 @@ void spi_app_thread(void* par) {
 void spi_app_publish_thread(void* par) {
 	char buf[128] = {0};
 	while (1) {
-		delay(ms_to_ticks(1000 / DATA_PUBLISH_HZ));
+		const TickType_t publish_delay = ms_to_ticks(1000 / DATA_PUBLISH_HZ);
+		static_assert(publish_delay > 0, "Invalid DATA_PUBLISH_HZ");
+		delay(publish_delay);
+
 		FOR_EACH_SPI_DEV(i) {
 			mlx90393_data_lock();
 			mlx90393_data_t d = mlx90393_data[i];
