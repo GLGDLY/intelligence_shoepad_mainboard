@@ -48,7 +48,7 @@ static void mqtt_connection_event_handler(void* handler_args, esp_event_base_t b
 			esp_mqtt_client_subscribe(client, app_topics, 2);
 
 			const char online_msg[] = {STATUS_ONLINE + '0', '\0'};
-			esp_mqtt_client_publish(client, status_topic, online_msg, sizeof(online_msg), 2, 1);
+			esp_mqtt_client_publish(client, status_topic, online_msg, strlen(online_msg), 2, 1);
 		} break;
 		case MQTT_EVENT_DISCONNECTED: {
 			LOGI("MQTT_EVENT_DISCONNECTED");
