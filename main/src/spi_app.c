@@ -3,16 +3,18 @@
 #include "MLX90393_cmds.h"
 #include "config.h"
 #include "debug.h"
-#include "esp_log.h"
-#include "freertos/projdefs.h"
+#include "esp_err.h"
 #include "mqtt_app.h"
 #include "os.h"
-#include "portmacro.h"
 #include "spi_gpio_helper.h"
 
 #include <assert.h>
 #include <driver/spi_master.h>
 #include <esp_flash.h>
+#include <esp_log.h>
+#include <esp_partition.h>
+#include <freertos/projdefs.h>
+#include <portmacro.h>
 #include <sdkconfig.h>
 
 
@@ -268,26 +270,48 @@ void spi_app_thread(void* par) {
 }
 
 /* Normalize sensor data */
-static struct {
+struct {
 	double T;
 	double X;
 	double Y;
 	double Z;
 } normalize_offset[NUM_OF_SPI_DEV] = {0};
+bool is_normalization_ready[NUM_OF_SPI_DEV] = {0};
+esp_partition_t flash_partition = {0};
+bool found_partition = false;
+
+void mlx_normalization_init(void) {
+	const esp_partition_t* partition =
+		esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "user");
+	if (!partition) {
+		LOGE("Partition not found");
+		return;
+	}
+	flash_partition = *partition;
+	found_partition = true;
+
+	uint8_t buf[1 + sizeof(normalize_offset)] = {0};
+	esp_err_t ret = esp_partition_read(&flash_partition, 0, &buf, sizeof(buf));
+	if (ret != ESP_OK) {
+		LOGE("Read flash failed: %d", ret);
+		return;
+	}
+	if (buf[0] != 0xAB) {
+		LOGE("Invalid flash magic number check: %x", buf[0]);
+		return;
+	}
+	memcpy(normalize_offset, &buf[1], sizeof(normalize_offset));
+	for (uint8_t i = 0; i < NUM_OF_SPI_DEV; i++) {
+		is_normalization_ready[i] = true;
+	}
+}
 
 bool mlx_normalize_offeset(uint8_t i, mlx90393_data_t* d) {
 	if (i >= NUM_OF_SPI_DEV) {
 		return false;
 	}
-	static bool is_init = false;
 
-	if (!is_init) {
-		// TODO: r/w from flash
-		// static bool try_flash = true;
-		// if (try_flash) {
-		// 	try_flash = false;
-		// }
-
+	if (!is_normalization_ready[i]) {
 		// calculate
 		static uint8_t cnt = 0;
 		const uint8_t max_cnt = 100;
@@ -299,7 +323,33 @@ bool mlx_normalize_offeset(uint8_t i, mlx90393_data_t* d) {
 			normalize_offset[i].Z += (double)d->Z / max_cnt;
 			cnt++;
 		} else {
-			is_init = true;
+			is_normalization_ready[i] = true;
+			// write to flash
+			if (!found_partition) {
+				return false;
+			}
+			bool write_flash = true;
+			for (uint8_t j = 0; j < NUM_OF_SPI_DEV; j++) {
+				if (!is_normalization_ready[j]) {
+					write_flash = false;
+					break;
+				}
+			}
+			if (!write_flash) {
+				return false;
+			}
+			uint8_t buf[1 + sizeof(normalize_offset)] = {0};
+			buf[0] = 0xAB;
+			memcpy(&buf[1], normalize_offset, sizeof(normalize_offset));
+			esp_err_t ret = esp_partition_erase_range(&flash_partition, 0, flash_partition.size);
+			if (ret != ESP_OK) {
+				LOGE("Erase flash failed: %d", ret);
+				return false;
+			}
+			ret = esp_partition_write(&flash_partition, 0, &buf, sizeof(buf));
+			if (ret != ESP_OK) {
+				LOGE("Write flash failed: %d", ret);
+			}
 		}
 		return false;
 	} else {
@@ -313,6 +363,7 @@ bool mlx_normalize_offeset(uint8_t i, mlx90393_data_t* d) {
 
 /* Publish sensor data */
 void spi_app_publish_thread(void* par) {
+	mlx_normalization_init();
 	char buf[128] = {0};
 	while (1) {
 		const TickType_t publish_delay = ms_to_ticks(1000 / DATA_PUBLISH_HZ);
