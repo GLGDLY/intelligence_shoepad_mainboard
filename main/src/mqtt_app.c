@@ -4,7 +4,7 @@
 #include "debug.h"
 #include "mqtt_utils.h"
 #include "os.h"
-#include "portmacro.h"
+#include "spi_app.h"
 
 #include <esp_event.h>
 #include <esp_mac.h>
@@ -21,13 +21,16 @@ esp_mqtt_status_t mqtt_status = STATUS_OFFLINE;
 static const char app_topics[] = "app/#";
 
 static char esp_id[6 * 2 + 1] = {0};
-static char status_topic[sizeof(esp_id) + 4 + 7] = {0}; // sizeof(esp_id) already include space for /0
+static char status_topic[sizeof(esp_id) + 4 + 7] = {0};	  // sizeof(esp_id) already include space for /0
+static char app_cal_topics[8 + sizeof(esp_id) + 1] = {0}; // sizeof(esp_id) already include space for /0
+
 void esp_id_init(void) {
 	uint8_t mac[6];
 	esp_read_mac(mac, ESP_MAC_WIFI_STA);
 	sprintf(esp_id, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
 	sprintf(status_topic, "esp/%s/status", esp_id);
+	sprintf(app_cal_topics, "app/cal/%s/", esp_id);
 }
 
 void mqtt_publish_sensor_data(const uint8_t sensor_id, const char* data) {
@@ -37,7 +40,18 @@ void mqtt_publish_sensor_data(const uint8_t sensor_id, const char* data) {
 	char data_topic[sizeof(esp_id) + 4 + 3 + 3] = {0};
 	sprintf(data_topic, "esp/%s/d/%d", esp_id, sensor_id);
 	LOGI("Publishing data to %s: %s", data_topic, data);
-	esp_mqtt_client_enqueue(client, data_topic, data, strlen(data), 1, 0, true);
+	esp_mqtt_client_enqueue(client, data_topic, data, strlen(data), 1, 0, false);
+}
+
+void mqtt_publish_sensor_cal_end(const uint8_t sensor_id) {
+	while (mqtt_status != STATUS_ONLINE) {
+		delay(ms_to_ticks(50));
+		continue;
+	}
+	char data_topic[sizeof(esp_id) + 4 + 5 + 3] = {0};
+	sprintf(data_topic, "esp/%s/cal/%d", esp_id, sensor_id);
+	LOGI("Publishing cal end to %s", data_topic);
+	esp_mqtt_client_enqueue(client, data_topic, "", 0, 1, 0, true);
 }
 
 static void mqtt_connection_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id,
@@ -83,8 +97,17 @@ static void mqtt_topic_event_handler(void* handler_args, esp_event_base_t base, 
 
 static void mqtt_data_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data) {
 	esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
+	if (event->topic_len < 4) { // must start with app/
+		return;
+	}
 	LOGI("TOPIC(%d): %.*s", event->topic_len, event->topic_len, event->topic);
 	LOGI("DATA(%d): %.*s", event->data_len, event->data_len, event->data);
+
+	// app/cal/{esp_id}/{sensor_id}
+	if (strncmp(event->topic, app_cal_topics, sizeof(app_cal_topics) - 1) == 0) {
+		int sensor_id = atoi(&event->topic[sizeof(app_cal_topics) - 1]);
+		mlx_set_force_normalization(sensor_id);
+	}
 }
 
 static void mqtt_event_handler(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id,

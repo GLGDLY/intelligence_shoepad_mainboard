@@ -16,6 +16,8 @@ typedef enum {
 
 void mqtt_publish_sensor_data(const uint8_t sensor_id, const char* data);
 
+void mqtt_publish_sensor_cal_end(const uint8_t sensor_id);
+
 void mqtt5_app_start(void);
 
 #endif // _MQTT_APP_H

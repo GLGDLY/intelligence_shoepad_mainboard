@@ -3,6 +3,7 @@
 #include "MLX90393_cmds.h"
 #include "config.h"
 #include "debug.h"
+#include "driver/spi_common.h"
 #include "esp_err.h"
 #include "mqtt_app.h"
 #include "os.h"
@@ -303,10 +304,11 @@ void mlx_normalization_init(void) {
 	memcpy(normalize_offset, &buf[1], sizeof(normalize_offset));
 	for (uint8_t i = 0; i < NUM_OF_SPI_DEV; i++) {
 		is_normalization_ready[i] = true;
+		mqtt_publish_sensor_cal_end(i);
 	}
 }
 
-bool mlx_normalize_offeset(uint8_t i, mlx90393_data_t* d) {
+bool mlx_normalize_offset(uint8_t i, mlx90393_data_t* d) {
 	if (i >= NUM_OF_SPI_DEV) {
 		return false;
 	}
@@ -324,6 +326,7 @@ bool mlx_normalize_offeset(uint8_t i, mlx90393_data_t* d) {
 			cnt++;
 		} else {
 			is_normalization_ready[i] = true;
+			mqtt_publish_sensor_cal_end(i);
 			// write to flash
 			if (!found_partition) {
 				return false;
@@ -361,6 +364,13 @@ bool mlx_normalize_offeset(uint8_t i, mlx90393_data_t* d) {
 	}
 }
 
+inline void mlx_set_force_normalization(uint8_t i) {
+	if (i >= NUM_OF_SPI_DEV) {
+		return;
+	}
+	is_normalization_ready[i] = false;
+}
+
 /* Publish sensor data */
 void spi_app_publish_thread(void* par) {
 	mlx_normalization_init();
@@ -374,7 +384,7 @@ void spi_app_publish_thread(void* par) {
 			mlx90393_data_lock();
 			mlx90393_data_t d = mlx90393_data[i];
 			mlx90393_data_unlock();
-			if (!mlx_normalize_offeset(i, &d)) {
+			if (!mlx_normalize_offset(i, &d)) {
 				continue;
 			}
 			sprintf(buf, "%d,%d,%d,%d", d.T, d.X, d.Y, d.Z);

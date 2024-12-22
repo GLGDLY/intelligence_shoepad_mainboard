@@ -21,4 +21,6 @@ void spi_app_publish_thread(void* par);
 
 void spi_tx_request(spi_cmd_t* cmd);
 
+void mlx_set_force_normalization(uint8_t i);
+
 #endif // _SPI_APP_H
