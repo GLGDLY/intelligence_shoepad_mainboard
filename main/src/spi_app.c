@@ -1,10 +1,10 @@
 #include "spi_app.h"
 
 #include "MLX90393_cmds.h"
+#include "config.h"
 #include "debug.h"
 #include "esp_log.h"
 #include "freertos/projdefs.h"
-#include "globals.h"
 #include "mqtt_app.h"
 #include "os.h"
 #include "portmacro.h"
@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <driver/spi_master.h>
+#include <esp_flash.h>
 #include <sdkconfig.h>
 
 
@@ -266,6 +267,51 @@ void spi_app_thread(void* par) {
 	}
 }
 
+/* Normalize sensor data */
+static struct {
+	double T;
+	double X;
+	double Y;
+	double Z;
+} normalize_offset[NUM_OF_SPI_DEV] = {0};
+
+bool mlx_normalize_offeset(uint8_t i, mlx90393_data_t* d) {
+	if (i >= NUM_OF_SPI_DEV) {
+		return false;
+	}
+	static bool is_init = false;
+
+	if (!is_init) {
+		// TODO: r/w from flash
+		// static bool try_flash = true;
+		// if (try_flash) {
+		// 	try_flash = false;
+		// }
+
+		// calculate
+		static uint8_t cnt = 0;
+		const uint8_t max_cnt = 100;
+
+		if (cnt < max_cnt) {
+			normalize_offset[i].T += (double)d->T / max_cnt;
+			normalize_offset[i].X += (double)d->X / max_cnt;
+			normalize_offset[i].Y += (double)d->Y / max_cnt;
+			normalize_offset[i].Z += (double)d->Z / max_cnt;
+			cnt++;
+		} else {
+			is_init = true;
+		}
+		return false;
+	} else {
+		d->T -= normalize_offset[i].T;
+		d->X -= normalize_offset[i].X;
+		d->Y -= normalize_offset[i].Y;
+		d->Z -= normalize_offset[i].Z;
+		return true;
+	}
+}
+
+/* Publish sensor data */
 void spi_app_publish_thread(void* par) {
 	char buf[128] = {0};
 	while (1) {
@@ -277,6 +323,9 @@ void spi_app_publish_thread(void* par) {
 			mlx90393_data_lock();
 			mlx90393_data_t d = mlx90393_data[i];
 			mlx90393_data_unlock();
+			if (!mlx_normalize_offeset(i, &d)) {
+				continue;
+			}
 			sprintf(buf, "%d,%d,%d,%d", d.T, d.X, d.Y, d.Z);
 			mqtt_publish_sensor_data(i, buf);
 		}

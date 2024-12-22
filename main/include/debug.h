@@ -1,7 +1,7 @@
 #ifndef _DEBUG_H_
 #define _DEBUG_H_
 
-#include "globals.h"
+#include "config.h"
 
 #ifdef DEBUG
 

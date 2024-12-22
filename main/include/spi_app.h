@@ -1,7 +1,7 @@
 #ifndef _SPI_APP_H
 #define _SPI_APP_H
 
-#include "globals.h"
+#include "config.h"
 
 #include <stddef.h>
 #include <stdint.h>

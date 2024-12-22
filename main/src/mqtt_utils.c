@@ -1,7 +1,7 @@
 #include "mqtt_utils.h"
 
+#include "config.h"
 #include "debug.h"
-#include "globals.h"
 #include "os.h"
 
 #include <esp_event.h>
@@ -10,6 +10,7 @@
 #include <esp_wifi.h>
 #include <nvs_flash.h>
 #include <socket.h>
+
 
 bool is_wifi_connected = false;
 

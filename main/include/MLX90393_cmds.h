@@ -1,7 +1,7 @@
 #ifndef _MLX90393_CMDS_H
 #define _MLX90393_CMDS_H
 
-#include "globals.h"
+#include "config.h"
 #include "spi_app.h"
 
 #include <stdbool.h>

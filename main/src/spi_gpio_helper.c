@@ -1,12 +1,13 @@
 #include "spi_gpio_helper.h"
 
+#include "config.h"
 #include "debug.h"
 #include "esp_log.h"
-#include "globals.h"
 #include "hal/gpio_types.h"
 #include "soc/gpio_num.h"
 
 #include <stdio.h>
+
 
 
 /* Helper macros */

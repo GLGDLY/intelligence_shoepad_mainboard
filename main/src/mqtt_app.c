@@ -1,7 +1,7 @@
 #include "mqtt_app.h"
 
+#include "config.h"
 #include "debug.h"
-#include "globals.h"
 #include "mqtt_utils.h"
 #include "os.h"
 #include "portmacro.h"
@@ -13,6 +13,7 @@
 #include <mqtt_client.h>
 #include <nvs_flash.h>
 #include <stdlib.h>
+
 
 esp_mqtt_client_handle_t client;
 esp_mqtt_status_t mqtt_status = STATUS_OFFLINE;
@@ -51,14 +52,24 @@ static void mqtt_connection_event_handler(void* handler_args, esp_event_base_t b
 			esp_mqtt_client_publish(client, status_topic, online_msg, strlen(online_msg), 2, 1);
 		} break;
 		case MQTT_EVENT_DISCONNECTED: {
-			LOGI("MQTT_EVENT_DISCONNECTED");
-			mqtt_status = STATUS_OFFLINE;
-			esp_mqtt_client_reconnect(client);
+			LOGW("MQTT_EVENT_DISCONNECTED");
+			LOGW("%d %d %s %d %d", ((esp_mqtt_event_handle_t)event_data)->error_handle->error_type,
+				 ((esp_mqtt_event_handle_t)event_data)->error_handle->connect_return_code,
+				 strerror(((esp_mqtt_event_handle_t)event_data)->error_handle->esp_transport_sock_errno),
+				 ((esp_mqtt_event_handle_t)event_data)->error_handle->esp_tls_last_esp_err,
+				 ((esp_mqtt_event_handle_t)event_data)->error_handle->esp_tls_stack_err);
+			// mqtt_status = STATUS_OFFLINE;
+			// esp_mqtt_client_reconnect(client);
 		} break;
 		case MQTT_EVENT_ERROR: {
-			LOGI("MQTT_EVENT_ERROR");
-			mqtt_status = STATUS_OFFLINE;
-			esp_mqtt_client_reconnect(client);
+			LOGW("MQTT_EVENT_ERROR");
+			LOGW("%d %d %s %d %d", ((esp_mqtt_event_handle_t)event_data)->error_handle->error_type,
+				 ((esp_mqtt_event_handle_t)event_data)->error_handle->connect_return_code,
+				 strerror(((esp_mqtt_event_handle_t)event_data)->error_handle->esp_transport_sock_errno),
+				 ((esp_mqtt_event_handle_t)event_data)->error_handle->esp_tls_last_esp_err,
+				 ((esp_mqtt_event_handle_t)event_data)->error_handle->esp_tls_stack_err);
+			// mqtt_status = STATUS_OFFLINE;
+			// esp_mqtt_client_reconnect(client);
 		} break;
 		default: break;
 	}
@@ -123,6 +134,7 @@ void mqtt5_app_start(void) {
 		.session.last_will.qos = 2,
 		.session.last_will.msg = will_msg,
 		.session.last_will.msg_len = sizeof(will_msg),
+		.network.disable_auto_reconnect = false,
 	};
 
 	client = esp_mqtt_client_init(&mqtt5_cfg);

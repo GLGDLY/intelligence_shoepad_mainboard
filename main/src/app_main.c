@@ -4,11 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "config.h"
 #include "debug.h"
-#include "globals.h"
 #include "mqtt_app.h"
 #include "os.h"
 #include "spi_app.h"
+
 
 #ifdef DEBUG
 RtosDefineTaskSized(debug_task, debug_thread, 4096);

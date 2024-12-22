@@ -1,7 +1,7 @@
 #ifndef _SPI_GPIO_HELPER_H
 #define _SPI_GPIO_HELPER_H
 
-#include "globals.h"
+#include "config.h"
 #include "macro_utils.h"
 
 #include <driver/gpio.h>
