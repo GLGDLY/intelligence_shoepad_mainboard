@@ -19,14 +19,20 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 	if (event_base == WIFI_EVENT) {
 		switch (event_id) {
 			case WIFI_EVENT_STA_START: {
-				esp_wifi_connect();
+				int ret = esp_wifi_connect();
+				if (ret != ESP_OK) {
+					LOGE("Failed to connect to AP, error: %d", ret);
+				}
 			} break;
 			case WIFI_EVENT_STA_CONNECTED: {
 				LOGI("connected to AP");
 			} break;
 			case WIFI_EVENT_STA_DISCONNECTED: {
-				esp_wifi_connect();
-				LOGI("connect to the AP fail,retry now");
+				LOGI("STA disconnected, retry now");
+				int ret = esp_wifi_connect();
+				if (ret != ESP_OK) {
+					LOGE("Failed to connect to AP, error: %d", ret);
+				}
 			} break;
 			default: break;
 		}
