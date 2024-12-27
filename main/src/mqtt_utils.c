@@ -28,7 +28,9 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 				LOGI("connected to AP");
 			} break;
 			case WIFI_EVENT_STA_DISCONNECTED: {
-				LOGI("STA disconnected, retry now");
+				LOGW("STA disconnected, retry now");
+				wifi_event_sta_disconnected_t* sta_disconnect_evt = (wifi_event_sta_disconnected_t*)event_data;
+				ESP_LOGI(TAG, "wifi disconnect reason:%d", sta_disconnect_evt->reason);
 				int ret = esp_wifi_connect();
 				if (ret != ESP_OK) {
 					LOGE("Failed to connect to AP, error: %d", ret);
