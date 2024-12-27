@@ -72,7 +72,7 @@ static void mqtt_connection_event_handler(void* handler_args, esp_event_base_t b
 				 strerror(((esp_mqtt_event_handle_t)event_data)->error_handle->esp_transport_sock_errno),
 				 ((esp_mqtt_event_handle_t)event_data)->error_handle->esp_tls_last_esp_err,
 				 ((esp_mqtt_event_handle_t)event_data)->error_handle->esp_tls_stack_err);
-			// mqtt_status = STATUS_OFFLINE;
+			mqtt_status = STATUS_OFFLINE;
 			// esp_mqtt_client_reconnect(client);
 		} break;
 		case MQTT_EVENT_ERROR: {
@@ -82,7 +82,7 @@ static void mqtt_connection_event_handler(void* handler_args, esp_event_base_t b
 				 strerror(((esp_mqtt_event_handle_t)event_data)->error_handle->esp_transport_sock_errno),
 				 ((esp_mqtt_event_handle_t)event_data)->error_handle->esp_tls_last_esp_err,
 				 ((esp_mqtt_event_handle_t)event_data)->error_handle->esp_tls_stack_err);
-			// mqtt_status = STATUS_OFFLINE;
+			mqtt_status = STATUS_OFFLINE;
 			// esp_mqtt_client_reconnect(client);
 		} break;
 		default: break;
