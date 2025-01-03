@@ -10,6 +10,7 @@
 #include <esp_mac.h>
 #include <esp_netif.h>
 #include <esp_system.h>
+#include <math.h>
 #include <mqtt_client.h>
 #include <nvs_flash.h>
 #include <stdlib.h>
@@ -82,7 +83,7 @@ static void mqtt_connection_event_handler(void* handler_args, esp_event_base_t b
 				 strerror(((esp_mqtt_event_handle_t)event_data)->error_handle->esp_transport_sock_errno),
 				 ((esp_mqtt_event_handle_t)event_data)->error_handle->esp_tls_last_esp_err,
 				 ((esp_mqtt_event_handle_t)event_data)->error_handle->esp_tls_stack_err);
-			mqtt_status = STATUS_OFFLINE;
+			// mqtt_status = STATUS_OFFLINE;
 			// esp_mqtt_client_reconnect(client);
 		} break;
 		default: break;
@@ -105,7 +106,17 @@ static void mqtt_data_event_handler(void* handler_args, esp_event_base_t base, i
 
 	// app/cal/{esp_id}/{sensor_id}
 	if (strncmp(event->topic, app_cal_topics, sizeof(app_cal_topics) - 1) == 0) {
-		int sensor_id = atoi(&event->topic[sizeof(app_cal_topics) - 1]);
+		// int sensor_id = atoi(&event->topic[sizeof(app_cal_topics) - 1]);
+		int sensor_id = 0;
+		for (int i = strnlen(event->topic, event->topic_len) - 1, power = 0; i >= 0; i--, power++) {
+			if (event->topic[i] == '/') {
+				break;
+			}
+			if (event->topic[i] < '0' || event->topic[i] > '9') {
+				return;
+			}
+			sensor_id += (event->topic[i] - '0') * pow(10, power);
+		}
 		mlx_set_force_normalization(sensor_id);
 	}
 }
