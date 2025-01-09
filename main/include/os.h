@@ -52,4 +52,6 @@
 #define delay(ms)		   vTaskDelay(ms_to_ticks(ms))
 #define delay_until(t, ms) vTaskDelayUntil(t, ms_to_ticks(ms))
 
+#define get_ticks() xTaskGetTickCount()
+
 #endif // _OS_H

@@ -40,8 +40,17 @@ void mqtt_publish_sensor_data(const uint8_t sensor_id, const char* data) {
 	}
 	char data_topic[sizeof(esp_id) + 4 + 3 + 3] = {0};
 	sprintf(data_topic, "esp/%s/d/%d", esp_id, sensor_id);
-	LOGI("Publishing data to %s: %s", data_topic, data);
-	esp_mqtt_client_enqueue(client, data_topic, data, strlen(data), 1, 0, false);
+
+	static uint32_t last_log_time[NUM_OF_SPI_DEV] = {0};
+	static int log_cnt[NUM_OF_SPI_DEV] = {0};
+	if (get_ticks() - last_log_time[sensor_id] > ms_to_ticks(1000)) {
+		LOGI("Publishing data to %s: %d times", data_topic, log_cnt[sensor_id]);
+		last_log_time[sensor_id] = get_ticks();
+		log_cnt[sensor_id] = 0;
+	} else {
+		log_cnt[sensor_id]++;
+	}
+	esp_mqtt_client_publish(client, data_topic, data, strlen(data), 1, 0);
 }
 
 void mqtt_publish_sensor_cal_end(const uint8_t sensor_id) {
@@ -134,10 +143,10 @@ static void mqtt_event_handler(void* event_handler_arg, esp_event_base_t event_b
 		case MQTT_EVENT_UNSUBSCRIBED:
 		case MQTT_EVENT_PUBLISHED: {
 			mqtt_topic_event_handler(event_handler_arg, event_base, event_id, event_data);
-		}
+		} break;
 		case MQTT_EVENT_DATA: {
 			mqtt_data_event_handler(event_handler_arg, event_base, event_id, event_data);
-		}
+		} break;
 		default: break; // ignore
 	}
 }

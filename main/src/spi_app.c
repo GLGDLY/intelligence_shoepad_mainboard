@@ -315,17 +315,25 @@ bool mlx_normalize_offset(uint8_t i, mlx90393_data_t* d) {
 
 	if (!is_normalization_ready[i]) {
 		// calculate
-		static uint8_t cnt = 0;
+		static uint8_t cnt[NUM_OF_SPI_DEV] = {0};
 		const uint8_t max_cnt = 100;
 
-		if (cnt < max_cnt) {
+		if (cnt[i] < max_cnt) {
+			if (cnt[i] == 0) {
+				ESP_LOGI(TAG, "Calibrating sensor %d: %d/%d", i, cnt[i], max_cnt);
+				normalize_offset[i].T = 0;
+				normalize_offset[i].X = 0;
+				normalize_offset[i].Y = 0;
+				normalize_offset[i].Z = 0;
+			}
 			normalize_offset[i].T += (double)d->T / max_cnt;
 			normalize_offset[i].X += (double)d->X / max_cnt;
 			normalize_offset[i].Y += (double)d->Y / max_cnt;
 			normalize_offset[i].Z += (double)d->Z / max_cnt;
-			cnt++;
+			++(cnt[i]);
 		} else {
 			is_normalization_ready[i] = true;
+			cnt[i] = 0;
 			mqtt_publish_sensor_cal_end(i);
 			// write to flash
 			if (!found_partition) {

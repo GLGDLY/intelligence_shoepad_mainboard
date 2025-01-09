@@ -1,6 +1,8 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
+#include "macro_utils.h"
+
 #include <esp_log.h>
 #include <esp_wifi_types_generic.h>
 #include <stdio.h>
@@ -13,11 +15,11 @@
 // Global
 #define TAG "mainboard"
 
-#define WIFI_SSID "ssid"
-#define WIFI_PWD  "password"
+#define WIFI_SSID "Robocon_24G"
+#define WIFI_PWD  "Ilovetimwoo"
 #define WIFI_MODE WIFI_AUTH_WPA2_PSK
 
-#define DATA_PUBLISH_HZ 300
+#define DATA_PUBLISH_HZ 100
 
 // Debug
 #define DEBUG
@@ -35,39 +37,36 @@
 #define SPI_SYNC_ALARM_US			  100
 #define SPI_SYNC_LOW_TIME_ALARM_COUNT 30
 
-#define SPI_PIN_MISO GPIO_NUM_13
-#define SPI_PIN_MOSI GPIO_NUM_14
-#define SPI_PIN_CLK	 GPIO_NUM_21
+#define SPI_PIN_MISO GPIO_NUM_20
+#define SPI_PIN_MOSI GPIO_NUM_19
+#define SPI_PIN_CLK	 GPIO_NUM_8
 #define SPI_HOST_ID	 SPI2_HOST
 
-/*
 #define SPI_CS_TABLE(X) \
-	X(A, GPIO_NUM_38)   \
-	X(B, GPIO_NUM_37)   \
-	X(C, GPIO_NUM_36)
-*/
-
-#define SPI_CS_TABLE(X) \
-	X(A, GPIO_NUM_42)   \
-	X(B, GPIO_NUM_41)   \
-	X(C, GPIO_NUM_40)   \
-	X(D, GPIO_NUM_38)   \
-	X(E, GPIO_NUM_37)   \
-	X(F, GPIO_NUM_36)   \
-	X(G, GPIO_NUM_45)   \
-	X(H, GPIO_NUM_48)
+	X(A, GPIO_NUM_21)   \
+	X(B, GPIO_NUM_14)   \
+	X(C, GPIO_NUM_13)   \
+	X(D, GPIO_NUM_12)   \
+	X(E, GPIO_NUM_11)
+// X(F, GPIO_NUM_10)
+// X(G, GPIO_NUM_9)
+// X(H, GPIO_NUM_46)
 
 #define SPI_DRDY_TABLE(X) \
 	X(GPIO_NUM_18)        \
 	X(GPIO_NUM_17)        \
 	X(GPIO_NUM_16)        \
 	X(GPIO_NUM_15)        \
-	X(GPIO_NUM_7)         \
-	X(GPIO_NUM_6)         \
-	X(GPIO_NUM_5)         \
-	X(GPIO_NUM_4)
+	X(GPIO_NUM_7)
+// X(GPIO_NUM_6)
+// X(GPIO_NUM_5)
+// X(GPIO_NUM_4)
 
-#define SPI_SYNC_PIN GPIO_NUM_39
+#define SPI_SYNC_PIN GPIO_NUM_3
+
+static_assert(0 SPI_CS_TABLE(X_EXPAND_CNT) == 0 SPI_DRDY_TABLE(X_EXPAND_CNT),
+			  "SPI_CS_TABLE and SPI_DRDY_TABLE must have the same number of elements");
+#define NUM_OF_SPI_DEV (0 SPI_DRDY_TABLE(X_EXPAND_CNT))
 
 // SPI MLX90393 device
 #define MLX90393_CMDS_TABLE(X) \

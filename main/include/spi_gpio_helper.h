@@ -2,7 +2,6 @@
 #define _SPI_GPIO_HELPER_H
 
 #include "config.h"
-#include "macro_utils.h"
 
 #include <driver/gpio.h>
 #include <driver/gptimer.h>
@@ -14,9 +13,6 @@ typedef enum {
 	SPI_CS_TABLE(X_EXPAND_CS_DECODER_ENUM) NUM_OF_CS_PIN,
 } SPI_CS_PIN;
 #undef X_EXPAND_CS_DECODER_ENUM
-
-/* Defines */
-#define NUM_OF_SPI_DEV (0 SPI_DRDY_TABLE(X_EXPAND_CNT))
 
 /* Macros */
 #define FOR_EACH_SPI_CS_BIT(i) for (int i = 0; i < NUM_OF_CS_DEC; i++)
