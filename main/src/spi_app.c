@@ -6,6 +6,7 @@
 #include "driver/spi_common.h"
 #include "esp_err.h"
 #include "mqtt_app.h"
+#include "mqtt_timer.h"
 #include "os.h"
 #include "spi_gpio_helper.h"
 
@@ -320,7 +321,7 @@ bool mlx_normalize_offset(uint8_t i, mlx90393_data_t* d) {
 
 		if (cnt[i] < max_cnt) {
 			if (cnt[i] == 0) {
-				ESP_LOGI(TAG, "Calibrating sensor %d: %d/%d", i, cnt[i], max_cnt);
+				LOGI("Calibrating sensor %d: %d/%d", i, cnt[i], max_cnt);
 				normalize_offset[i].T = 0;
 				normalize_offset[i].X = 0;
 				normalize_offset[i].Y = 0;
@@ -382,7 +383,7 @@ inline void mlx_set_force_normalization(uint8_t i) {
 /* Publish sensor data */
 void spi_app_publish_thread(void* par) {
 	mlx_normalization_init();
-	char buf[128] = {0};
+	char buf[256] = {0};
 	while (1) {
 		const TickType_t publish_delay = ms_to_ticks(1000 / DATA_PUBLISH_HZ);
 		static_assert(publish_delay > 0, "Invalid DATA_PUBLISH_HZ");
@@ -395,7 +396,7 @@ void spi_app_publish_thread(void* par) {
 			if (!mlx_normalize_offset(i, &d)) {
 				continue;
 			}
-			sprintf(buf, "%d,%d,%d,%d", d.T, d.X, d.Y, d.Z);
+			sprintf(buf, "%lld/%d,%d,%d,%d", mqtt_timer_get(i), d.T, d.X, d.Y, d.Z);
 			mqtt_publish_sensor_data(i, buf);
 		}
 	}

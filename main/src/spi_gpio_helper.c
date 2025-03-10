@@ -3,19 +3,18 @@
 #include "config.h"
 #include "debug.h"
 #include "esp_log.h"
-#include "hal/gpio_types.h"
-#include "soc/gpio_num.h"
 
+#include <hal/gpio_types.h>
+#include <soc/gpio_num.h>
 #include <stdio.h>
 
 
-
 /* Helper macros */
-#define X_EXPAND_CS_CONSTRUCT(NAME, PIN) [CS_DEC_##NAME] = PIN,
-#define X_EXPAND_CS_PIN_MASK(NAME, PIN)	 (1ULL << PIN) |
+#define X_EXPAND_CS_CONSTRUCT(NAME, PIN) [CS_DEC_##NAME] = (PIN),
+#define X_EXPAND_CS_PIN_MASK(NAME, PIN)	 (1ULL << (PIN)) |
 
-#define X_EXPAND_DRDY_CONSTRUCT(PIN) PIN,
-#define X_EXPAND_DRDY_PIN_MASK(PIN)	 (1ULL << PIN) |
+#define X_EXPAND_DRDY_CONSTRUCT(PIN) (PIN),
+#define X_EXPAND_DRDY_PIN_MASK(PIN)	 (1ULL << (PIN)) |
 
 /* Constants */
 const gpio_num_t SPI_CS_PINS[] = {SPI_CS_TABLE(X_EXPAND_CS_CONSTRUCT)};

@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "debug.h"
+#include "mqtt_timer.h"
 #include "mqtt_utils.h"
 #include "os.h"
 #include "spi_app.h"
@@ -22,8 +23,9 @@ esp_mqtt_status_t mqtt_status = STATUS_OFFLINE;
 static const char app_topics[] = "app/#";
 
 static char esp_id[6 * 2 + 1] = {0};
-static char status_topic[sizeof(esp_id) + 4 + 7] = {0};	  // sizeof(esp_id) already include space for /0
-static char app_cal_topics[8 + sizeof(esp_id) + 1] = {0}; // sizeof(esp_id) already include space for /0
+static char status_topic[sizeof(esp_id) + 4 + 7] = {0};		 // sizeof(esp_id) already include space for /0
+static char app_cal_topics[8 + sizeof(esp_id) + 1] = {0};	 // sizeof(esp_id) already include space for /0
+static char app_timer_topics[10 + sizeof(esp_id) + 1] = {0}; // sizeof(esp_id) already include space for /0
 
 void esp_id_init(void) {
 	uint8_t mac[6];
@@ -32,6 +34,7 @@ void esp_id_init(void) {
 
 	sprintf(status_topic, "esp/%s/status", esp_id);
 	sprintf(app_cal_topics, "app/cal/%s/", esp_id);
+	sprintf(app_timer_topics, "app/timer/%s/", esp_id);
 }
 
 void mqtt_publish_sensor_data(const uint8_t sensor_id, const char* data) {
@@ -127,6 +130,25 @@ static void mqtt_data_event_handler(void* handler_args, esp_event_base_t base, i
 			sensor_id += (event->topic[i] - '0') * pow(10, power);
 		}
 		mlx_set_force_normalization(sensor_id);
+	}
+	// app/timer/{esp_id}/{cmd:0-9}
+	else if (strncmp(event->topic, app_timer_topics, sizeof(app_timer_topics) - 1) == 0) {
+		int cmd = 0;
+		for (int i = strnlen(event->topic, event->topic_len) - 1, power = 0; i >= 0; i--, power++) {
+			if (event->topic[i] == '/') {
+				break;
+			}
+			if (event->topic[i] < '0' || event->topic[i] > '9') {
+				return;
+			}
+			cmd += (event->topic[i] - '0') * pow(10, power);
+		}
+		switch (cmd) {
+			case 0: {
+				mqtt_timer_reset();
+			} break;
+			default: break;
+		}
 	}
 }
 
