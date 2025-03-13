@@ -2,7 +2,7 @@
 
 #include <driver/gptimer.h>
 
-uint64_t mqtt_time_ms = 0;
+static uint64_t mqtt_time_ms = 0;
 gptimer_handle_t mqtt_timer = NULL;
 
 bool timer_reset_flag[NUM_OF_SPI_DEV] = {false};
@@ -42,7 +42,8 @@ void mqtt_timer_start() {
 }
 
 void mqtt_timer_reset() {
-	mqtt_time_ms = 0;
+	// mqtt_time_ms = 0;
+	__atomic_store_n(&mqtt_time_ms, 0, __ATOMIC_SEQ_CST);
 	for (int i = 0; i < NUM_OF_SPI_DEV; i++) {
 		timer_reset_flag[i] = true;
 	}
@@ -59,7 +60,7 @@ uint64_t mqtt_timer_get(int i) {
 		timer_reset_flag[i] = false;
 		return 0;
 	}
-	return mqtt_time_ms;
+	return __atomic_load_n(&mqtt_time_ms, __ATOMIC_SEQ_CST);
 }
 
 void mqtt_timer_stop() {
