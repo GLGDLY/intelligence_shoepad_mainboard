@@ -389,15 +389,18 @@ void spi_app_publish_thread(void* par) {
 		static_assert(publish_delay > 0, "Invalid DATA_PUBLISH_HZ");
 		delay(publish_delay);
 
+		mlx90393_data_t d[NUM_OF_SPI_DEV] = {0};
+		mlx90393_data_lock();
+		memcpy(d, mlx90393_data, sizeof(mlx90393_data));
+		mlx90393_data_unlock();
+
 		FOR_EACH_SPI_DEV(i) {
-			mlx90393_data_lock();
-			mlx90393_data_t d = mlx90393_data[i];
-			mlx90393_data_unlock();
-			if (!mlx_normalize_offset(i, &d)) {
+			if (!mlx_normalize_offset(i, &(d[i]))) {
 				continue;
 			}
-			sprintf(buf, "%lld/%d,%d,%d,%d", mqtt_timer_get(i), d.T, d.X, d.Y, d.Z);
+			sprintf(buf, "%lld/%d,%d,%d,%d", mqtt_timer_get(i), d[i].T, d[i].X, d[i].Y, d[i].Z);
 			mqtt_publish_sensor_data(i, buf);
+			// printf("%d %d %d\n", d[i].X, d[i].Y, d[i].Z);
 		}
 	}
 }
