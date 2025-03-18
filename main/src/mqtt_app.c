@@ -27,6 +27,17 @@ static char status_topic[sizeof(esp_id) + 4 + 7] = {0};		 // sizeof(esp_id) alre
 static char app_cal_topics[8 + sizeof(esp_id) + 1] = {0};	 // sizeof(esp_id) already include space for /0
 static char app_timer_topics[10 + sizeof(esp_id) + 1] = {0}; // sizeof(esp_id) already include space for /0
 
+static char broker_ip[16] = {0};
+static char broker_url[16 + 7 + 5] = {0};
+
+bool broker_url_set() {
+	bool ret = find_mqtt_ip(broker_ip);
+	if (ret) {
+		sprintf(broker_url, "mqtt://%s:1883", broker_ip);
+	}
+	return ret;
+}
+
 void esp_id_init(void) {
 	uint8_t mac[6];
 	esp_read_mac(mac, ESP_MAC_WIFI_STA);
@@ -53,7 +64,7 @@ void mqtt_publish_sensor_data(const uint8_t sensor_id, const char* data) {
 	} else {
 		log_cnt[sensor_id]++;
 	}
-	esp_mqtt_client_publish(client, data_topic, data, strlen(data), 1, 0);
+	esp_mqtt_client_publish(client, data_topic, data, strlen(data), 0, 0);
 }
 
 void mqtt_publish_sensor_cal_end(const uint8_t sensor_id) {
@@ -64,13 +75,17 @@ void mqtt_publish_sensor_cal_end(const uint8_t sensor_id) {
 	char data_topic[sizeof(esp_id) + 4 + 5 + 3] = {0};
 	sprintf(data_topic, "esp/%s/cal/%d", esp_id, sensor_id);
 	LOGI("Publishing cal end to %s", data_topic);
-	esp_mqtt_client_enqueue(client, data_topic, "", 0, 1, 0, true);
+	esp_mqtt_client_enqueue(client, data_topic, "", 0, 2, 0, true);
 }
 
 static void mqtt_connection_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id,
 										  void* event_data) {
+	static uint32_t disconnect_timer = 0;
+	static bool disconnected = false;
 	switch (event_id) {
 		case MQTT_EVENT_CONNECTED: {
+			disconnected = false;
+
 			LOGI("MQTT_EVENT_CONNECTED");
 			mqtt_status = STATUS_ONLINE;
 			esp_mqtt_client_subscribe(client, app_topics, 2);
@@ -79,6 +94,14 @@ static void mqtt_connection_event_handler(void* handler_args, esp_event_base_t b
 			esp_mqtt_client_publish(client, status_topic, online_msg, strlen(online_msg), 2, 1);
 		} break;
 		case MQTT_EVENT_DISCONNECTED: {
+			if (!disconnected) {
+				disconnected = true;
+				disconnect_timer = get_ticks();
+			} else if (get_ticks() - disconnect_timer < ms_to_ticks(3000)) { // if 3s passed, try find IP again
+				// in case broker IP changed
+				broker_url_set(); // ignore return
+			}
+
 			LOGW("MQTT_EVENT_DISCONNECTED");
 			LOGW("%d %d %s %d %d", ((esp_mqtt_event_handle_t)event_data)->error_handle->error_type,
 				 ((esp_mqtt_event_handle_t)event_data)->error_handle->connect_return_code,
@@ -179,14 +202,11 @@ void mqtt5_app_start(void) {
 
 	connect_to_wifi();
 
-	char broker_ip[16] = {0};
-	while (!find_mqtt_ip(broker_ip)) {
+	while (!broker_url_set()) {
 		const TickType_t find_ip_delay = ms_to_ticks(NET_RETRY_INTERVAL_MS);
 		static_assert(find_ip_delay > 0, "Invalid NET_RETRY_INTERVAL_MS");
 		delay(find_ip_delay);
 	}
-	char broker_url[16 + 7 + 5] = {0};
-	sprintf(broker_url, "mqtt://%s:1883", broker_ip);
 	LOGI("Connecting to mqtt broker: %s", broker_url);
 
 	const char will_msg[] = {STATUS_OFFLINE + '0', '\0'};
