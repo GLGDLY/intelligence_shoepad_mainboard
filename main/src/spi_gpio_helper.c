@@ -65,6 +65,7 @@ void spi_cs_clear(void) {
 // __attribute__((weak)) void spi_drdy_intr_handler(void* arg){};
 
 void spi_drdy_init(void) {
+#ifdef USE_SPI_DRDY_PINS
 	LOGI("SPI DRDY init");
 	esp_err_t ret;
 
@@ -83,12 +84,20 @@ void spi_drdy_init(void) {
 	// 	ret = gpio_isr_handler_add(SPI_DRDY_PINS[i], spi_drdy_intr_handler, (void*)(uint64_t)i);
 	// 	ESP_ERROR_CHECK(ret);
 	// }
+#else
+	LOGI("SPI DRDY init skipped (polling mode)");
+#endif
 }
 
 uint32_t spi_drdy_get(void) {
+#ifdef USE_SPI_DRDY_PINS
 	uint32_t drdy = 0;
 	FOR_EACH_SPI_DEV(i) { drdy |= gpio_get_level(SPI_DRDY_PINS[i]) << i; }
 	return drdy;
+#else
+	// In polling mode, always return 0 (no DRDY pins)
+	return 0;
+#endif
 }
 
 /* SPI Sync */
@@ -122,6 +131,7 @@ bool timer_isr_handler(struct gptimer_t* timer, const gptimer_alarm_event_data_t
 }
 
 void spi_sync_init(void) {
+#ifdef USE_SPI_DRDY_PINS
 	LOGI("SPI SYNC init");
 	esp_err_t ret;
 
@@ -163,10 +173,18 @@ void spi_sync_init(void) {
 	ESP_ERROR_CHECK(ret);
 
 	LOGI("SPI SYNC init success");
+#else
+	LOGI("SPI SYNC init skipped (polling mode)");
+#endif
 }
 
 void spi_sync_start(void) {
+#ifdef USE_SPI_DRDY_PINS
 	esp_err_t ret;
 	ret = gptimer_start(timer);
 	ESP_ERROR_CHECK(ret);
+	LOGI("SPI SYNC started");
+#else
+	LOGI("SPI SYNC start skipped (polling mode)");
+#endif
 }

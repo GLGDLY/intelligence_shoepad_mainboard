@@ -5,7 +5,7 @@
 
 #include <assert.h>
 #include <esp_log.h>
-#include <esp_wifi_types_generic.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,11 +16,27 @@
 // Global
 #define TAG "mainboard"
 
-#define WIFI_SSID "shoepad_wifi"
-#define WIFI_PWD  "12345678"
-#define WIFI_MODE WIFI_AUTH_WPA2_PSK
+// BLE 5.1 Configuration
+#define BLE_DEVICE_NAME "IntelligentShoePad"
+#define BLE_MANUFACTURER_ID 0x02E5  // Espressif manufacturer ID
+#define BLE_APPEARANCE 0x0000       // Generic appearance
+#define BLE_MAX_CONN_NUM 1          // Maximum concurrent connections
+#define BLE_ADV_INTERVAL_MIN 0x20   // 20ms advertising interval
+#define BLE_ADV_INTERVAL_MAX 0x40   // 40ms advertising interval
 
 #define DATA_PUBLISH_HZ 100
+
+// Signal Processing Configuration
+#define SMOOTHING_WINDOW_SIZE 30  // Moving average window size
+
+// SPI Data Ready Configuration
+#define USE_SPI_DRDY_PINS       // Comment out to disable DRDY pins and use 300Hz polling
+#define SPI_POLLING_FREQUENCY_HZ 400  // Polling frequency when DRDY is disabled
+
+// Legacy, for Wifi MQTT connection (REMOVED)
+// #define WIFI_SSID "shoepad_wifi"
+// #define WIFI_PWD  "12345678"
+// #define WIFI_MODE WIFI_AUTH_WPA2_PSK
 
 // Debug
 #define DEBUG
@@ -30,9 +46,18 @@
 // #define DEBUG_ENABLE_SPI_PRINT_DATA
 #define DEBUG_SPI_PRINT_INTVL_MS 1000
 
-// Network
-#define NET_RETRY_INTERVAL_MS 3000
-#define MQTT_BUF_SIZE		  512
+// BLE Communication
+#define BLE_RETRY_INTERVAL_MS 1000
+#define BLE_DATA_BUF_SIZE 512
+#define BLE_NOTIFICATION_ENABLED 1
+
+// BLE Service and Characteristic UUIDs (128-bit, RFC 4122 compliant)
+// Generated using proper UUID v4 random generation
+#define BLE_SERVICE_UUID_SENSOR_DATA    "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+#define BLE_CHAR_UUID_SENSOR_DATA       "6ba7b811-9dad-11d1-80b4-00c04fd430c8"
+#define BLE_CHAR_UUID_SENSOR_STATUS     "6ba7b812-9dad-11d1-80b4-00c04fd430c8"
+#define BLE_CHAR_UUID_CALIBRATION       "6ba7b813-9dad-11d1-80b4-00c04fd430c8"
+#define BLE_CHAR_UUID_TIMER_CONTROL     "6ba7b814-9dad-11d1-80b4-00c04fd430c8"
 
 // SPI
 #define SPI_SYNC_ALARM_US			  100

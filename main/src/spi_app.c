@@ -5,8 +5,9 @@
 #include "debug.h"
 #include "driver/spi_common.h"
 #include "esp_err.h"
-#include "mqtt_app.h"
+#include "ble_app.h"
 #include "mqtt_timer.h"
+#include "signal_processing.h"
 #include "os.h"
 #include "spi_gpio_helper.h"
 
@@ -75,9 +76,13 @@ void spi_app_init(void) {
 	ESP_ERROR_CHECK(ret);
 
 	spi_cs_init();
+#ifdef USE_SPI_DRDY_PINS
 	spi_drdy_init();
 	spi_sync_init();
-	LOGI("SPI init success");
+	LOGI("SPI init success with DRDY pins");
+#else
+	LOGI("SPI init success with polling mode (no DRDY)");
+#endif
 }
 
 void spi_tx_request(spi_cmd_t* cmd) {
@@ -167,7 +172,7 @@ void spi_post_init(void) {
 	FOR_EACH_SPI_DEV(i) {
 		while (1) {
 			mlx90393_status_t status;
-			status = mlx90393_RT_request(i);
+			status = mlx90393_RT_request(i);	// reset sensor i and check return status
 			if (mlx90393_RM_data_is_valid(status)) {
 				LOGI("Reset SPI dev: %d success: %x", i, status.raw);
 			} else {
@@ -180,39 +185,52 @@ void spi_post_init(void) {
 			uint8_t reg_data[2] = {0};
 
 			reg_data[0] = 0x00; // BIST disabled
-			reg_data[1] = 0x5C; // Hall plate spinning rate = DEFAULT, GAIN_SEL = 5
+			reg_data[1] = 0x1C; // HALLCONF = 12, GAIN_SEL = 1
 			if (!spi_write_reg_with_assert(i, 0x00, (uint8_t*)reg_data)) {
 				goto retry;
 			}
 
 			delay(10);
 
-			reg_data[0] = 0x08; // enable trigger for sync
+#ifdef USE_SPI_DRDY_PINS
+			reg_data[0] = 0x2C; // enable trigger for sync
 			reg_data[1] = 0x00;
+#else
+			reg_data[0] = 0x28; // continuous mode (no sync trigger)
+			reg_data[1] = 0x00;
+#endif
 			if (!spi_write_reg_with_assert(i, 0x01, (uint8_t*)reg_data)) {
 				goto retry;
 			}
 
 			delay(10);
 
-			reg_data[0] = 0x02;
-			reg_data[1] = 0xB4; // RES for magnetic measurement = 0
+			reg_data[0] = 0x04;	// OSR2 = 0
+			reg_data[1] = 0xA8; // FILT = 2, OSR = 0
 			if (!spi_write_reg_with_assert(i, 0x02, (uint8_t*)reg_data)) {
 				goto retry;
 			}
 
 			delay(10);
-
+#ifdef USE_SPI_DRDY_PINS
 			status = mlx90393_SM_request(i);
 			if (mlx90393_assert_SM_mode(status)) {
-				LOGI("Init SPI dev: %d success: %x", i, status.raw);
+				LOGI("Init SPI SM mode dev: %d success: %x", i, status.raw);
 			} else {
-				LOGE("Init SPI dev: %d failed: %x", i, status.raw);
+				LOGE("Init SPI SM mode dev: %d failed: %x", i, status.raw);
 				goto retry;
 			}
 
 			delay(10);
-
+#else
+			status = mlx90393_SB_request(i);
+			if (mlx90393_RM_data_is_valid(status)) {
+				LOGI("Init SPI SB mode dev: %d success: %x", i, status.raw);
+			} else {
+				LOGE("Init SPI SB mode dev: %d failed: %x", i, status.raw);
+				goto retry;
+			}
+#endif
 			break;
 
 		retry:
@@ -227,7 +245,9 @@ void spi_app_thread(void* par) {
 
 	spi_post_init();
 
+#ifdef USE_SPI_DRDY_PINS
 	spi_sync_start();
+#endif
 
 	delay(100);
 
@@ -235,15 +255,39 @@ void spi_app_thread(void* par) {
 	uint32_t debug_last_ticks = xTaskGetTickCount();
 #endif
 
+#ifdef USE_SPI_DRDY_PINS
+	// DRDY-based mode: Wait for data ready signals
 	while (1) {
 		uint32_t drdy = spi_drdy_get();
 		if (drdy) {
 			FOR_EACH_SPI_DEV(i) {
 				if (drdy & (1 << i)) {
 					mlx90393_data_t d = mlx90393_RM_request(i);
-					mlx90393_data_lock();
-					mlx90393_data[i] = d;
-					mlx90393_data_unlock();
+					
+					// Apply normalization and processing immediately
+					if (mlx_normalize_offset(i, &d)) {
+						// Process sensor data through signal processing pipeline immediately
+						processed_sensor_data_t processed_data;
+						if (process_sensor_data(i, &d, &processed_data)) {
+							// Store processed data
+							mlx90393_data_lock();
+							mlx90393_data[i] = d;  // Store normalized raw data
+							mlx90393_data_unlock();
+							
+							// Immediate BLE publishing (non-blocking)
+							char buf[256];
+							sprintf(buf, "%lld/%d,%d,%d,%d", processed_data.timestamp, 
+									(int16_t)d.T, processed_data.raw_X, processed_data.raw_Y, processed_data.raw_Z);
+							ble_publish_sensor_data(i, buf);
+							ble_publish_processed_sensor_data(i, &processed_data);
+						}
+					} else {
+						// Still calibrating - store raw data only
+						mlx90393_data_lock();
+						mlx90393_data[i] = d;
+						mlx90393_data_unlock();
+					}
+					
 					dev_ready &= ~(1 << i); // clear bit
 				}
 				// else {
@@ -269,6 +313,73 @@ void spi_app_thread(void* par) {
 
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 	}
+#else
+	// Polling mode: Read sensors at fixed frequency
+	const TickType_t polling_interval = ms_to_ticks(1000 / SPI_POLLING_FREQUENCY_HZ);
+	static_assert(polling_interval > 0, "Invalid SPI_POLLING_FREQUENCY_HZ");
+	
+	LOGI("Starting SPI polling mode at %d Hz (interval: %d ms)", 
+		 SPI_POLLING_FREQUENCY_HZ, 1000 / SPI_POLLING_FREQUENCY_HZ);
+	
+	TickType_t last_poll_time = xTaskGetTickCount();
+	
+	while (1) {
+		TickType_t current_time = xTaskGetTickCount();
+		
+		// Check if it's time for next polling cycle
+		if ((current_time - last_poll_time) >= polling_interval) {
+			// Read and process each sensor immediately
+			FOR_EACH_SPI_DEV(i) {
+				mlx90393_data_t d = mlx90393_RM_request(i);
+				
+				// Apply normalization immediately
+				if (mlx_normalize_offset(i, &d)) {
+					// Process sensor data through signal processing pipeline immediately
+					processed_sensor_data_t processed_data;
+					if (process_sensor_data(i, &d, &processed_data)) {
+						// Store processed data for publishing task
+						mlx90393_data_lock();
+						mlx90393_data[i] = d;  // Store normalized raw data
+						mlx90393_data_unlock();
+						
+						// Immediate BLE publishing (non-blocking)
+						char buf[256];
+						sprintf(buf, "%lld/%d,%d,%d,%d", processed_data.timestamp, 
+								(int16_t)d.T, processed_data.raw_X, processed_data.raw_Y, processed_data.raw_Z);
+						ble_publish_sensor_data(i, buf);
+						ble_publish_processed_sensor_data(i, &processed_data);
+					}
+				} else {
+					// Still calibrating - store raw data only
+					mlx90393_data_lock();
+					mlx90393_data[i] = d;
+					mlx90393_data_unlock();
+				}
+			}
+			
+			// Update timing for next cycle
+			last_poll_time = current_time;
+		}
+
+#ifdef DEBUG
+	#ifdef DEBUG_ENABLE_SPI_PRINT_DATA
+		if (current_time - debug_last_ticks >= DEBUG_SPI_PRINT_INTVL_MS) {
+			FOR_EACH_SPI_DEV(i) {
+				mlx90393_data_lock();
+				mlx90393_data_t d = mlx90393_data[i];
+				mlx90393_data_unlock();
+				LOGI("Dev: %d, T: %d, X: %d, Y: %d, Z: %d", i, d.T, d.X, d.Y, d.Z);
+			}
+			LOGI("--------------------------------------------");
+			debug_last_ticks = current_time;
+		}
+	#endif
+#endif
+
+		// Small yield to prevent watchdog and allow other tasks to run
+		vTaskDelay(pdMS_TO_TICKS(1));  // 1ms yield - much better than blocking
+	}
+#endif
 }
 
 /* Normalize sensor data */
@@ -305,7 +416,7 @@ void mlx_normalization_init(void) {
 	memcpy(normalize_offset, &buf[1], sizeof(normalize_offset));
 	for (uint8_t i = 0; i < NUM_OF_SPI_DEV; i++) {
 		is_normalization_ready[i] = true;
-		mqtt_publish_sensor_cal_end(i);
+		ble_publish_sensor_cal_end(i);
 	}
 }
 
@@ -335,7 +446,7 @@ bool mlx_normalize_offset(uint8_t i, mlx90393_data_t* d) {
 		} else {
 			is_normalization_ready[i] = true;
 			cnt[i] = 0;
-			mqtt_publish_sensor_cal_end(i);
+			ble_publish_sensor_cal_end(i);
 			// write to flash
 			if (!found_partition) {
 				return false;
@@ -380,27 +491,33 @@ inline void mlx_set_force_normalization(uint8_t i) {
 	is_normalization_ready[i] = false;
 }
 
-/* Publish sensor data */
+/* Publish sensor data - Now simplified since Core 0 does immediate processing */
 void spi_app_publish_thread(void* par) {
 	mlx_normalization_init();
-	char buf[256] = {0};
+	signal_processing_init();
+	
+	LOGI("Publish task started - Core 0 now handles immediate processing");
+	
 	while (1) {
-		const TickType_t publish_delay = ms_to_ticks(1000 / DATA_PUBLISH_HZ);
-		static_assert(publish_delay > 0, "Invalid DATA_PUBLISH_HZ");
-		delay(publish_delay);
-
-		mlx90393_data_t d[NUM_OF_SPI_DEV] = {0};
-		mlx90393_data_lock();
-		memcpy(d, mlx90393_data, sizeof(mlx90393_data));
-		mlx90393_data_unlock();
-
-		FOR_EACH_SPI_DEV(i) {
-			if (!mlx_normalize_offset(i, &(d[i]))) {
-				continue;
-			}
-			sprintf(buf, "%lld/%d,%d,%d,%d", mqtt_timer_get(i), d[i].T, d[i].X, d[i].Y, d[i].Z);
-			mqtt_publish_sensor_data(i, buf);
-			// printf("%d %d %d\n", d[i].X, d[i].Y, d[i].Z);
+		// This task is now mainly for initialization and potential batch operations
+		// Core 0 handles immediate processing and BLE publishing
+		
+		// Sleep for longer periods since Core 0 does the real-time work
+		delay(ms_to_ticks(1000));  // 1 second - just keep task alive
+		
+		// Could be used for periodic maintenance tasks like:
+		// - Flash storage operations
+		// - System health checks
+		// - Batch statistics calculations
+		
+#ifdef DEBUG
+		// Periodic memory usage report
+		static uint32_t last_memory_report = 0;
+		uint32_t current_time = xTaskGetTickCount();
+		if (current_time - last_memory_report > ms_to_ticks(10000)) {  // Every 10 seconds
+			ESP_LOGI(TAG, "Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
+			last_memory_report = current_time;
 		}
+#endif
 	}
 }

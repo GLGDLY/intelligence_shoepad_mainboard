@@ -42,7 +42,6 @@ typedef union {
 		int16_t X;
 		int16_t Y;
 		int16_t Z;
-		int16_t T;
 	};
 } mlx90393_data_t;
 
